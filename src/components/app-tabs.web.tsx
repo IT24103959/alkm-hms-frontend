@@ -1,3 +1,4 @@
+import { type Href } from 'expo-router';
 import {
   Tabs,
   TabList,
@@ -45,7 +46,7 @@ export default function AppTabs() {
       <TabList asChild>
         <CustomTabList>
           {tabs.map((tab) => (
-            <TabTrigger key={tab.name} name={tab.name} href={tab.href} asChild>
+            <TabTrigger key={tab.name} name={tab.name} href={tab.href as Href} asChild>
               <TabButton>{tab.label}</TabButton>
             </TabTrigger>
           ))}

@@ -188,8 +188,6 @@ export default function MaintenanceScreen() {
 
   const openCreate = () => {
     setEditingTicket(null);
-    setForm(initialForm);
-    setFormError('');
     setModalVisible(true);
   };
 
