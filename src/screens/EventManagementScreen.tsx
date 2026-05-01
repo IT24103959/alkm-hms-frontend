@@ -58,10 +58,10 @@ const fmtDate = (v?: string) => {
 // ── Event Form Modal ──────────────────────────────────────────────────────────
 
 function EventFormModal({
-  visible, editing, theme, isDark, onClose, onSaved,
+  visible, editing, theme,  onClose, onSaved,
 }: Readonly<{
   visible: boolean; editing: EventBooking | null;
-  theme: ReturnType<typeof useTheme>; isDark: boolean;
+  theme: ReturnType<typeof useTheme>; 
   onClose: () => void; onSaved: () => void;
 }>) {
   const [form, setForm] = useState<Omit<EventBooking, 'id'>>(BLANK);
@@ -98,7 +98,7 @@ function EventFormModal({
   }];
 
   const handleSubmit = async () => {
-    if (!form.customerName.trim() || !form.eventDateTime || !form.endDateTime) {
+    if (!form.customerName?.trim() || !form.eventDateTime || !form.endDateTime) {
       setError('Customer name, event start and end date/time are required.');
       return;
     }
@@ -201,7 +201,6 @@ function ChipRow({
 
 export default function EventManagementScreen() {
   const theme = useTheme();
-  const isDark = theme.background === '#000000';
 
   const [bookings, setBookings] = useState<EventBooking[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, number>>({});
@@ -331,7 +330,7 @@ export default function EventManagementScreen() {
         />
       )}
 
-      <EventFormModal visible={modalVisible} editing={editing} theme={theme} isDark={isDark} onClose={() => setModalVisible(false)} onSaved={load} />
+      <EventFormModal visible={modalVisible} editing={editing} theme={theme}  onClose={() => setModalVisible(false)} onSaved={load} />
     </SafeAreaView>
   );
 }

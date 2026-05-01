@@ -34,7 +34,7 @@ const AMENITIES = [
 
 const formatLabel = (v: string) => v.replaceAll('_', ' ');
 
-function MenuCard({ item, theme, isDark }: Readonly<{ item: MenuItem; theme: ReturnType<typeof useTheme>; isDark: boolean }>) {
+function MenuCard({ item, theme }: Readonly<{ item: MenuItem; theme: ReturnType<typeof useTheme> }>) {
   return (
     <View style={[styles.menuCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={styles.menuCardTop}>
@@ -55,7 +55,6 @@ function MenuCard({ item, theme, isDark }: Readonly<{ item: MenuItem; theme: Ret
 export default function DiningScreen() {
   const { user } = useAuth();
   const theme = useTheme();
-  const isDark = theme.background === '#000000';
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +83,7 @@ export default function DiningScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero */}
-        <View style={[styles.hero, { backgroundColor: isDark ? '#0f1f2e' : '#f2fdff' }]}>
+        <View style={[styles.hero, { backgroundColor:  '#f2fdff' }]}>
           <Text style={styles.heroEyebrow}>ALKM HOTEL</Text>
           <Text style={[styles.heroTitle, { color: theme.text }]}>Restaurant & Dining</Text>
           <Text style={[styles.heroSub, { color: theme.textSecondary }]}>
@@ -137,7 +136,7 @@ export default function DiningScreen() {
             <FlatList
               data={filtered}
               keyExtractor={(item) => String(item.id)}
-              renderItem={({ item }) => <MenuCard item={item} theme={theme} isDark={isDark} />}
+              renderItem={({ item }) => <MenuCard item={item} theme={theme} />}
               contentContainerStyle={styles.menuList}
               scrollEnabled={false}
             />
