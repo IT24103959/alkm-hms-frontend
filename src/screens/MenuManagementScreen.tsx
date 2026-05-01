@@ -45,10 +45,10 @@ const formatLabel = (v: string) => v.replaceAll('_', ' ');
 // ── Item Form Modal ───────────────────────────────────────────────────────────
 
 function ItemFormModal({
-  visible, editing, theme, isDark, onClose, onSaved,
+  visible, editing, theme,  onClose, onSaved,
 }: Readonly<{
   visible: boolean; editing: MenuItem | null;
-  theme: ReturnType<typeof useTheme>; isDark: boolean;
+  theme: ReturnType<typeof useTheme>; 
   onClose: () => void; onSaved: () => void;
 }>) {
   const [form, setForm] = useState<Omit<MenuItem, 'id'>>(BLANK_FORM);
@@ -156,7 +156,6 @@ function ChipRow({
 
 export default function MenuManagementScreen() {
   const theme = useTheme();
-  const isDark = theme.background === '#000000';
 
   const [items, setItems] = useState<MenuItem[]>([]);
   const [search, setSearch] = useState('');
@@ -234,7 +233,7 @@ export default function MenuManagementScreen() {
       </View>
 
       {/* Search */}
-      <View style={[styles.filterBar, { borderBottomColor: isDark ? '#1f2937' : '#e5e7eb' }]}>
+      <View style={[styles.filterBar, { borderBottomColor: '#e5e7eb' }]}>
         <TextInput
           style={[styles.searchInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
           placeholder="Search items..." placeholderTextColor={theme.textSecondary}
@@ -297,7 +296,7 @@ export default function MenuManagementScreen() {
         />
       )}
 
-      <ItemFormModal visible={modalVisible} editing={editing} theme={theme} isDark={isDark} onClose={() => setModalVisible(false)} onSaved={load} />
+      <ItemFormModal visible={modalVisible} editing={editing} theme={theme}  onClose={() => setModalVisible(false)} onSaved={load} />
     </SafeAreaView>
   );
 }
