@@ -7,10 +7,14 @@ export interface LoginPayload {
 
 export interface LoginResponse {
   token: string;
-  username: string;
-  fullName: string;
-  role: string;
-  permissions: string[];
+  data: {
+    user: {
+      username: string;
+      fullName: string;
+      role: string;
+      permissions: string[];
+    };
+  }
 }
 
 export const loginApi = (payload: LoginPayload) =>

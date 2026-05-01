@@ -4,7 +4,7 @@ export type { ApiError } from './http';
 
 // NestJS room-operations service
 const ROOM_SERVICE_BASE_URL =
-  process.env.EXPO_PUBLIC_ROOM_SERVICE_BASE_URL ?? 'http://localhost:3001/api';
+  process.env.EXPO_PUBLIC_ROOM_SERVICE_BASE_URL ?? 'http://localhost:5001/api/v1';
 
 export async function roomServiceHttp<T>(
   path: string,
