@@ -4,36 +4,48 @@ import {
   TabList,
   TabTrigger,
   TabSlot,
-  TabTriggerSlotProps,
-  TabListProps,
+  type TabTriggerSlotProps,
+  type TabListProps,
 } from 'expo-router/ui';
-import React from 'react';
-import { Alert, Pressable, useColorScheme, View, StyleSheet, Text } from 'react-native';
-
-import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+import React, { createContext, useCallback, useContext, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/context/AuthContext';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 
 interface TabConfig {
   name: string;
   href: string;
   label: string;
+  icon: string;
 }
 
 const ALL_TABS: TabConfig[] = [
-  { name: 'home', href: '/', label: 'Dashboard' },
-  { name: 'housekeeping', href: '/housekeeping', label: 'Housekeeping' },
-  { name: 'maintenance', href: '/maintenance', label: 'Maintenance' },
+  { name: 'home',          href: '/',             label: 'Dashboard',    icon: '🏠' },
+  { name: 'housekeeping',  href: '/housekeeping',  label: 'Housekeeping', icon: '🛏️' },
+  { name: 'maintenance',   href: '/maintenance',   label: 'Maintenance',  icon: '🔧' },
+  { name: 'rooms',         href: '/rooms',         label: 'Rooms',        icon: '🏨' },
+  { name: 'payroll',       href: '/payroll',       label: 'Payroll',      icon: '💰' },
+  { name: 'menu',          href: '/menu',          label: 'Menu',         icon: '🍽️' },
+  { name: 'dining',        href: '/dining',        label: 'Dining',       icon: '🍴' },
+  { name: 'events',        href: '/events',        label: 'Events',       icon: '🎉' },
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
-  SUPER_ADMIN: ['home', 'housekeeping', 'maintenance'],
-  MANAGER: ['home', 'housekeeping', 'maintenance'],
-  HOUSEKEEPER: ['home', 'housekeeping'],
-  MAINTENANCE_STAFF: ['home', 'maintenance'],
+  SUPER_ADMIN:        ['home', 'rooms', 'payroll', 'housekeeping', 'maintenance', 'menu', 'dining', 'events'],
+  MANAGER:            ['home', 'rooms', 'payroll', 'housekeeping', 'maintenance', 'menu', 'dining', 'events'],
+  HOUSEKEEPER:        ['home', 'housekeeping'],
+  MAINTENANCE_STAFF:  ['home', 'maintenance'],
+  STAFF_MEMBER:       ['home', 'payroll'],
+  RESTAURANT_MANAGER: ['home', 'menu', 'dining'],
+  EVENT_MANAGER:      ['home', 'events'],
+  CUSTOMER:           ['home', 'dining'],
 };
+
+// Context so TabButton can close the drawer when a nav item is tapped
+const DrawerContext = createContext<() => void>(() => {});
+
+// ── App shell ─────────────────────────────────────────────────────────────────
 
 export default function AppTabs() {
   const { user } = useAuth();
@@ -42,12 +54,13 @@ export default function AppTabs() {
 
   return (
     <Tabs>
-      <TabSlot style={{ height: '100%' }} />
+      {/* Content area sits below the 56px top bar */}
+      <TabSlot style={{ flex: 1, marginTop: 56 }} />
       <TabList asChild>
         <CustomTabList>
           {tabs.map((tab) => (
             <TabTrigger key={tab.name} name={tab.name} href={tab.href as Href} asChild>
-              <TabButton>{tab.label}</TabButton>
+              <TabButton icon={tab.icon}>{tab.label}</TabButton>
             </TabTrigger>
           ))}
         </CustomTabList>
@@ -56,111 +69,339 @@ export default function AppTabs() {
   );
 }
 
-export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+// ── Tab button rendered inside the drawer ────────────────────────────────────
+
+export function TabButton({
+  children, isFocused, icon, ...props
+}: TabTriggerSlotProps & { icon?: string }) {
+  const closeDrawer = useContext(DrawerContext);
+  const originalOnPress = props.onPress;
+
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
-          {children}
-        </ThemedText>
-      </ThemedView>
+    <Pressable
+      {...props}
+      onPress={(e) => { originalOnPress?.(e); closeDrawer(); }}
+      style={({ pressed }) => [
+        styles.navItem,
+        isFocused && styles.navItemActive,
+        pressed && styles.pressed,
+      ]}
+    >
+      {icon ? <Text style={styles.navItemIcon}>{icon}</Text> : null}
+      <Text style={[styles.navItemText, isFocused && styles.navItemTextActive]}>
+        {children}
+      </Text>
     </Pressable>
   );
 }
 
+// ── Custom tab list: top bar + hamburger sidebar ─────────────────────────────
+
 export function CustomTabList(props: TabListProps) {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
+  const C = Colors.light;
+
+  const closeDrawer = useCallback(() => setIsOpen(false), []);
 
   const handleLogout = () => {
-    if (globalThis.window === undefined) {
-      Alert.alert('Logout', 'Are you sure you want to log out?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
-      ]);
-    } else if (globalThis.window.confirm('Are you sure you want to log out?')) {
+    if (globalThis.window?.confirm('Are you sure you want to log out?')) {
       logout();
     }
   };
 
   return (
-    <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          ALKM HMS
-        </ThemedText>
+    <DrawerContext.Provider value={closeDrawer}>
+      {/* Container: covers full screen, passes pointer events through to content */}
+      <View {...props} pointerEvents="box-none" style={styles.container}>
 
-        {props.children}
+        {/* ── Top bar ── */}
+        <View
+          pointerEvents="auto"
+          style={[styles.topBar, { backgroundColor: C.card, borderBottomColor: C.border }]}
+        >
+          <Text style={[styles.brand, { color: C.primary }]}>🏨 ALKM HMS</Text>
 
-        <View style={styles.rightSection}>
-          {user?.fullName || user?.username ? (
-            <Text style={[styles.usernameText, { color: colors.textSecondary }]}>
-              {user.fullName ?? user.username}
-            </Text>
-          ) : null}
-          <Pressable
-            style={({ pressed }) => [styles.logoutBtn, pressed && styles.pressed]}
-            onPress={handleLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </Pressable>
+          <View style={styles.topBarRight}>
+            {(user?.fullName || user?.username) ? (
+              <Text style={[styles.topBarUser, { color: C.textSecondary }]}>
+                {user.fullName ?? user.username}
+              </Text>
+            ) : null}
+            <Pressable
+              pointerEvents="auto"
+              onPress={() => setIsOpen(true)}
+              style={({ pressed }) => [styles.hamburgerBtn, { backgroundColor: C.backgroundElement }, pressed && styles.pressed]}
+              accessibilityLabel="Open navigation menu"
+            >
+              <Text style={[styles.hamburgerIcon, { color: C.primary }]}>☰</Text>
+            </Pressable>
+          </View>
         </View>
-      </ThemedView>
-    </View>
+
+        {/* ── Overlay (tap to close drawer) ── */}
+        {isOpen && (
+          <Pressable
+            pointerEvents="auto"
+            style={styles.overlay}
+            onPress={() => setIsOpen(false)}
+            accessibilityLabel="Close navigation menu"
+          />
+        )}
+
+        {/* ── Sidebar drawer ── */}
+        {isOpen && (
+          <View
+            pointerEvents="auto"
+            style={[styles.drawer, { backgroundColor: C.card, borderRightColor: C.border }]}
+          >
+            {/* Drawer header */}
+            <View style={[styles.drawerHeader, { borderBottomColor: C.border }]}>
+              <Text style={[styles.drawerBrand, { color: C.primary }]}>🏨 ALKM HMS</Text>
+              <Pressable
+                onPress={() => setIsOpen(false)}
+                style={({ pressed }) => [
+                  styles.closeBtn,
+                  { backgroundColor: C.backgroundElement },
+                  pressed && styles.pressed,
+                ]}
+                hitSlop={8}
+                accessibilityLabel="Close menu"
+              >
+                <Text style={[styles.closeIcon, { color: C.textSecondary }]}>✕</Text>
+              </Pressable>
+            </View>
+
+            {/* Nav items */}
+            <ScrollView style={styles.drawerNav} showsVerticalScrollIndicator={false}>
+              {props.children}
+            </ScrollView>
+
+            {/* Footer: avatar + logout */}
+            <View style={[styles.drawerFooter, { borderTopColor: C.border }]}>
+              {(user?.fullName || user?.username) ? (
+                <View style={styles.drawerUserRow}>
+                  <View style={[styles.avatar, { backgroundColor: C.backgroundSelected }]}>
+                    <Text style={[styles.avatarText, { color: C.primary }]}>
+                      {(user.fullName ?? user.username ?? '?')[0].toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.drawerUserName, { color: C.text }]} numberOfLines={1}>
+                      {user.fullName ?? user.username}
+                    </Text>
+                    {user.role ? (
+                      <Text style={[styles.drawerUserRole, { color: C.textSecondary }]}>
+                        {user.role.replaceAll('_', ' ')}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+              <Pressable
+                style={({ pressed }) => [styles.logoutBtn, pressed && styles.pressed]}
+                onPress={handleLogout}
+              >
+                <Text style={styles.logoutText}>Sign Out</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </View>
+    </DrawerContext.Provider>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const C = Colors.light;
+
 const styles = StyleSheet.create({
-  tabListContainer: {
+  // Root container — full screen, pointer events pass through to content
+  container: {
     position: 'absolute',
-    width: '100%',
-    padding: Spacing.three,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
   },
-  innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
+
+  // ── Top bar ──────────────────────────────────────────────────────────────
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
+    borderBottomWidth: 1,
+    zIndex: 110,
+    shadowColor: '#0f1f2e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  brand: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
-    maxWidth: MaxContentWidth,
   },
-  brandText: {
-    marginRight: Spacing.two,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  tabButtonView: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
-  },
-  rightSection: {
-    marginLeft: 'auto',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  usernameText: {
+  topBarUser: {
     fontSize: 13,
+    fontWeight: '500',
   },
-  logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+  hamburgerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hamburgerIcon: {
+    fontSize: 18,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+
+  // ── Overlay ───────────────────────────────────────────────────────────────
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 31, 46, 0.35)',
+    zIndex: 120,
+  },
+
+  // ── Drawer ────────────────────────────────────────────────────────────────
+  drawer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 260,
+    borderRightWidth: 1,
+    zIndex: 130,
+    shadowColor: '#0f1f2e',
+    shadowOffset: { width: 8, height: 0 },
+    shadowOpacity: 0.14,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.three,
+    borderBottomWidth: 1,
+  },
+  drawerBrand: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
     borderRadius: 6,
-    backgroundColor: '#ef444422',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logoutText: {
-    color: '#ef4444',
+  closeIcon: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // ── Nav items ─────────────────────────────────────────────────────────────
+  drawerNav: {
+    flex: 1,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.two,
+  },
+  navItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 2,
+  },
+  navItemActive: {
+    backgroundColor: C.backgroundSelected,
+  },
+  navItemIcon: {
+    fontSize: 16,
+    width: 22,
+    textAlign: 'center',
+  },
+  navItemText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: C.textSecondary,
+  },
+  navItemTextActive: {
+    color: C.primary,
+    fontWeight: '700',
+  },
+
+  // ── Drawer footer ─────────────────────────────────────────────────────────
+  drawerFooter: {
+    padding: Spacing.three,
+    gap: Spacing.two,
+    borderTopWidth: 1,
+  },
+  drawerUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  drawerUserName: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  drawerUserRole: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  logoutBtn: {
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#c1121f18',
+    alignItems: 'center',
+  },
+  logoutText: {
+    color: '#c1121f',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  pressed: {
+    opacity: 0.65,
   },
 });
 

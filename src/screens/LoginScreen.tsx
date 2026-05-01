@@ -46,7 +46,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Background layers to simulate gradient */}
+      {/* Light background */}
       <View style={[StyleSheet.absoluteFill, styles.bgTop]} />
       <View style={[StyleSheet.absoluteFill, styles.bgBottom]} />
 
@@ -76,7 +76,7 @@ export default function LoginScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your username"
-                    placeholderTextColor="rgba(255,255,255,0.35)"
+                    placeholderTextColor="#94a3b8"
                     value={username}
                     onChangeText={setUsername}
                     autoCapitalize="none"
@@ -91,7 +91,7 @@ export default function LoginScreen() {
                     <TextInput
                       style={[styles.input, styles.passwordInput]}
                       placeholder="Enter your password"
-                      placeholderTextColor="rgba(255,255,255,0.35)"
+                      placeholderTextColor="#94a3b8"
                       value={password}
                       onChangeText={setPassword}
                       secureTextEntry={!showPassword}
@@ -119,7 +119,7 @@ export default function LoginScreen() {
                   onPress={handleLogin}
                   disabled={loading}>
                   {loading ? (
-                    <ActivityIndicator color="#1e293b" />
+                    <ActivityIndicator color="#ffffff" />
                   ) : (
                     <Text style={styles.loginButtonText}>Login</Text>
                   )}
@@ -138,14 +138,14 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f4f7fb',
   },
   bgTop: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f4f7fb',
     bottom: '50%',
   },
   bgBottom: {
-    backgroundColor: '#1a2744',
+    backgroundColor: '#eef5fb',
     top: '50%',
   },
   safeArea: {
@@ -167,10 +167,15 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 28,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderColor: '#e2e8f0',
     gap: 24,
+    shadowColor: '#0f1f2e',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.07,
+    shadowRadius: 24,
+    elevation: 6,
   },
   header: {
     alignItems: 'center',
@@ -198,18 +203,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#0f1f2e',
     letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
+    color: '#486581',
     letterSpacing: 2,
   },
   tagline: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.45)',
+    color: '#486581',
     marginTop: 4,
   },
   form: {
@@ -221,17 +226,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
+    color: '#486581',
     letterSpacing: 0.3,
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#eef5fb',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: '#e2e8f0',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#ffffff',
+    color: '#0f1f2e',
     fontSize: 15,
   },
   passwordRow: {
@@ -245,9 +250,9 @@ const styles = StyleSheet.create({
     borderRightWidth: 0,
   },
   eyeButton: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#eef5fb',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: '#e2e8f0',
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
     paddingHorizontal: 14,
@@ -259,23 +264,23 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: 13,
-    color: '#fca5a5',
-    backgroundColor: 'rgba(239,68,68,0.15)',
+    color: '#c1121f',
+    backgroundColor: '#c1121f18',
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.3)',
+    borderColor: '#c1121f33',
     lineHeight: 18,
   },
   loginButton: {
-    backgroundColor: '#f4d28f',
+    backgroundColor: '#005f73',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#f4d28f',
+    shadowColor: '#005f73',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 5,
   },
@@ -287,7 +292,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   loginButtonText: {
-    color: '#1e293b',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -295,6 +300,6 @@ const styles = StyleSheet.create({
   hint: {
     textAlign: 'center',
     fontSize: 12,
-    color: 'rgba(255,255,255,0.3)',
+    color: '#94a3b8',
   },
 });

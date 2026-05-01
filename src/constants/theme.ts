@@ -9,18 +9,42 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    // Base
+    text: '#0f1f2e',
+    background: '#f4f7fb',
+    backgroundElement: '#eef5fb',
+    backgroundSelected: '#d2ebff',
+    textSecondary: '#486581',
+    // Cards & borders
+    card: '#ffffff',
+    border: '#e2e8f0',
+    // Brand
+    primary: '#005f73',
+    primaryLight: '#0a9396',
+    accent: '#ffb703',
+    accentMuted: '#f4d28f',
+    // Status
+    danger: '#c1121f',
+    success: '#1d7f49',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    // Base
+    text: '#f1f5f9',
+    background: '#0f172a',
+    backgroundElement: '#1e293b',
+    backgroundSelected: '#2e3a4e',
+    textSecondary: '#94a3b8',
+    // Cards & borders
+    card: '#1e293b',
+    border: '#1f2937',
+    // Brand
+    primary: '#0a9396',
+    primaryLight: '#2dd4bf',
+    accent: '#f4d28f',
+    accentMuted: '#fde68a',
+    // Status
+    danger: '#ef4444',
+    success: '#10b981',
   },
 } as const;
 

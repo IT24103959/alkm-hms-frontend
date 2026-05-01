@@ -141,7 +141,6 @@ function ChipGroup({
 export default function MaintenanceScreen() {
   const { user } = useAuth();
   const theme = useTheme();
-  const isDark = theme.background === '#000000';
 
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
   const [stats, setStats] = useState<MaintenanceStats | null>(null);
@@ -245,7 +244,6 @@ export default function MaintenanceScreen() {
       item={item}
       canManage={canManage}
       theme={theme}
-      isDark={isDark}
       onStatus={handleQuickStatus}
       onEdit={openEdit}
       onDelete={handleDelete}
@@ -258,7 +256,7 @@ export default function MaintenanceScreen() {
       <View
         style={[
           styles.pageHeader,
-          { borderBottomColor: isDark ? '#1f2937' : '#e5e7eb' },
+          { borderBottomColor: theme.border },
         ]}>
         <View>
           <Text style={[styles.pageEyebrow, { color: theme.textSecondary }]}>ROOM OPERATIONS</Text>
@@ -266,7 +264,7 @@ export default function MaintenanceScreen() {
         </View>
         {canManage && (
           <Pressable
-            style={({ pressed }) => [styles.newBtn, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.newBtn, { backgroundColor: theme.primary }, pressed && styles.pressed]}
             onPress={openCreate}>
             <Text style={styles.newBtnText}>+ New Ticket</Text>
           </Pressable>
@@ -288,11 +286,11 @@ export default function MaintenanceScreen() {
       )}
 
       {/* Search + Filters */}
-      <View style={[styles.filterBar, { borderBottomColor: isDark ? '#1f2937' : '#e5e7eb' }]}>
+      <View style={[styles.filterBar, { borderBottomColor: theme.border }]}>
         <TextInput
           style={[
             styles.searchInput,
-            { color: theme.text, borderColor: isDark ? '#374151' : '#e5e7eb', backgroundColor: isDark ? '#111827' : '#f9fafb' },
+            { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement },
           ]}
           placeholder="Search room..."
           placeholderTextColor={theme.textSecondary}
@@ -307,7 +305,7 @@ export default function MaintenanceScreen() {
                 onPress={() => setStatusFilter(opt.value)}
                 style={[
                   styles.filterChip,
-                  { borderColor: isDark ? '#374151' : '#e5e7eb' },
+                  { borderColor: theme.border },
                   statusFilter === opt.value && { backgroundColor: theme.text, borderColor: theme.text },
                 ]}>
                 <Text
@@ -342,7 +340,6 @@ export default function MaintenanceScreen() {
         visible={modalVisible}
         editingTicket={editingTicket}
         theme={theme}
-        isDark={isDark}
         onClose={() => setModalVisible(false)}
         onSaved={loadData}
       />
@@ -354,7 +351,6 @@ function TicketCard({
   item,
   canManage,
   theme,
-  isDark,
   onStatus,
   onEdit,
   onDelete,
@@ -362,7 +358,6 @@ function TicketCard({
   item: MaintenanceTicket;
   canManage: boolean;
   theme: ReturnType<typeof useTheme>;
-  isDark: boolean;
   onStatus: (ticket: MaintenanceTicket) => void;
   onEdit: (ticket: MaintenanceTicket) => void;
   onDelete: (ticket: MaintenanceTicket) => void;
@@ -371,7 +366,7 @@ function TicketCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: isDark ? '#111827' : '#f9fafb', borderColor: isDark ? '#1f2937' : '#e5e7eb' },
+        { backgroundColor: theme.card, borderColor: theme.border },
       ]}>
       <View style={styles.cardHeader}>
         <Text style={[styles.cardRoom, { color: theme.text }]}>Room {item.roomNumber}</Text>
@@ -438,14 +433,12 @@ function MaintenanceFormModal({
   visible,
   editingTicket,
   theme,
-  isDark,
   onClose,
   onSaved,
 }: Readonly<{
   visible: boolean;
   editingTicket: MaintenanceTicket | null;
   theme: ReturnType<typeof useTheme>;
-  isDark: boolean;
   onClose: () => void;
   onSaved: () => void;
 }>) {
@@ -455,8 +448,8 @@ function MaintenanceFormModal({
 
   const inputStyle = [styles.input, {
     color: theme.text,
-    borderColor: isDark ? '#374151' : '#e5e7eb',
-    backgroundColor: isDark ? '#111827' : '#f9fafb',
+    borderColor: theme.border,
+    backgroundColor: theme.backgroundElement,
   }];
 
   useEffect(() => {
@@ -521,7 +514,7 @@ function MaintenanceFormModal({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={[styles.modalSafeArea, { backgroundColor: theme.background }]}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#1f2937' : '#e5e7eb' }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>
               {editingTicket ? 'Edit Ticket' : 'New Maintenance Ticket'}
             </Text>
@@ -633,7 +626,6 @@ const styles = StyleSheet.create({
   pageEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
   pageTitle: { fontSize: 22, fontWeight: '700', marginTop: 2 },
   newBtn: {
-    backgroundColor: '#8b5cf6',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,

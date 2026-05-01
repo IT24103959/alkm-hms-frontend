@@ -39,6 +39,16 @@ const canViewHousekeeping = (role?: string) =>
 const canViewMaintenance = (role?: string) =>
   ['SUPER_ADMIN', 'MANAGER', 'MAINTENANCE_STAFF'].includes(role ?? '');
 
+interface ModuleNav { key: string; label: string; description: string; route: string; color: string; roles: string[]; }
+
+const ALL_MODULES: ModuleNav[] = [
+  { key: 'rooms', label: 'Room Management', description: 'Manage rooms & bookings', route: '/rooms', color: '#10b981', roles: ['SUPER_ADMIN', 'MANAGER'] },
+  { key: 'payroll', label: 'Payroll', description: 'Staff salary & payroll records', route: '/payroll', color: '#3b82f6', roles: ['SUPER_ADMIN', 'MANAGER', 'STAFF_MEMBER'] },
+  { key: 'menu', label: 'Menu Management', description: 'Add & edit menu items', route: '/menu', color: '#ec4899', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER'] },
+  { key: 'dining', label: 'Restaurant & Dining', description: 'View menu & reserve a table', route: '/dining', color: '#f97316', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER', 'CUSTOMER'] },
+  { key: 'events', label: 'Event Management', description: 'Event bookings & analytics', route: '/events', color: '#f59e0b', roles: ['SUPER_ADMIN', 'MANAGER', 'EVENT_MANAGER'] },
+];
+
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
   const theme = useTheme();
@@ -82,7 +92,6 @@ export default function DashboardScreen() {
     ]);
   };
 
-  const isDark = theme.background === '#000000';
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -109,11 +118,11 @@ export default function DashboardScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.logoutButton,
-              { borderColor: isDark ? '#374151' : '#e5e7eb' },
+              { borderColor: theme.border, backgroundColor: theme.danger + '18' },
               pressed && styles.buttonPressed,
             ]}
             onPress={handleLogout}>
-            <Text style={[styles.logoutText, { color: '#ef4444' }]}>Logout</Text>
+            <Text style={[styles.logoutText, { color: theme.danger }]}>Logout</Text>
           </Pressable>
         </View>
 
@@ -144,20 +153,17 @@ export default function DashboardScreen() {
                 <Pressable
                   style={({ pressed }) => [
                     styles.navCard,
-                    {
-                      backgroundColor: isDark ? '#0f172a' : '#f0f9ff',
-                      borderColor: '#3b82f6',
-                    },
+                    { backgroundColor: theme.card, borderLeftColor: theme.primary, borderLeftWidth: 4 },
                     pressed && styles.buttonPressed,
                   ]}
                   onPress={() => router.navigate('/housekeeping')}>
-                  <Text style={[styles.navCardTitle, { color: '#3b82f6' }]}>
+                  <Text style={[styles.navCardTitle, { color: theme.primary }]}>
                     Housekeeping Tasks
                   </Text>
                   <Text style={[styles.navCardSub, { color: theme.textSecondary }]}>
                     Manage cleaning, inspection &amp; turndown
                   </Text>
-                  <Text style={[styles.navCardArrow, { color: '#3b82f6' }]}>→</Text>
+                  <Text style={[styles.navCardArrow, { color: theme.primary }]}>→</Text>
                 </Pressable>
               </View>
             )}
@@ -176,20 +182,17 @@ export default function DashboardScreen() {
                 <Pressable
                   style={({ pressed }) => [
                     styles.navCard,
-                    {
-                      backgroundColor: isDark ? '#0f172a' : '#fdf4ff',
-                      borderColor: '#8b5cf6',
-                    },
+                    { backgroundColor: theme.card, borderLeftColor: theme.primaryLight, borderLeftWidth: 4 },
                     pressed && styles.buttonPressed,
                   ]}
                   onPress={() => router.navigate('/maintenance')}>
-                  <Text style={[styles.navCardTitle, { color: '#8b5cf6' }]}>
+                  <Text style={[styles.navCardTitle, { color: theme.primary }]}>
                     Maintenance Tickets
                   </Text>
                   <Text style={[styles.navCardSub, { color: theme.textSecondary }]}>
                     Track repairs, assign technical staff
                   </Text>
-                  <Text style={[styles.navCardArrow, { color: '#8b5cf6' }]}>→</Text>
+                  <Text style={[styles.navCardArrow, { color: theme.primary }]}>→</Text>
                 </Pressable>
               </View>
             )}
@@ -204,6 +207,22 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             )}
+
+            {/* Other Modules */}
+            {ALL_MODULES.filter((m) => m.roles.includes(user?.role ?? '')).map((mod) => (
+              <Pressable
+                key={mod.key}
+                style={({ pressed }) => [
+                    styles.navCard,
+                    { backgroundColor: theme.card, borderLeftColor: mod.color, borderLeftWidth: 4 },
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={() => router.navigate(mod.route as '/rooms')}>
+                <Text style={[styles.navCardTitle, { color: mod.color }]}>{mod.label}</Text>
+                <Text style={[styles.navCardSub, { color: theme.textSecondary }]}>{mod.description}</Text>
+                <Text style={[styles.navCardArrow, { color: mod.color }]}>→</Text>
+              </Pressable>
+            ))}
           </>
         )}
       </ScrollView>
@@ -318,8 +337,13 @@ const styles = StyleSheet.create({
   navCard: {
     padding: Spacing.three,
     borderRadius: 14,
-    borderWidth: 1.5,
+    borderWidth: 0,
     gap: 4,
+    elevation: 2,
+    shadowColor: '#0f1f2e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
   },
   navCardTitle: {
     fontSize: 16,
