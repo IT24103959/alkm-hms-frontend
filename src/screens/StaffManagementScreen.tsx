@@ -31,7 +31,7 @@ const POSITIONS = [
   'Event Manager', 'Housekeeper', 'Maintenance Staff',
 ] as const;
 
-const BLANK: Omit<StaffMember, 'id'> = {
+const BLANK: Omit<StaffMember, '_id' | 'status' | 'user'> = {
   name: '', username: '', password: '', position: 'Manager', basicSalary: 0,
   attendance: 0, overtimeHours: 0, absentDays: 0, overtimeRate: 0, dailyRate: 0,
 };
@@ -52,7 +52,7 @@ function StaffFormModal({
   onClose: () => void;
   onSaved: () => void;
 }>) {
-  const [form, setForm] = useState<Omit<StaffMember, 'id'>>(BLANK);
+  const [form, setForm] = useState<Omit<StaffMember, '_id' | 'status' | 'user'>>(BLANK);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -104,7 +104,7 @@ function StaffFormModal({
     setError('');
     setSubmitting(true);
     try {
-      const payload: Omit<StaffMember, 'id'> = {
+      const payload: Omit<StaffMember, '_id' | 'status' | 'user'> = {
         ...form,
         position: form.position.toUpperCase().replaceAll(' ', '_'),
         basicSalary: Number(form.basicSalary),
@@ -121,7 +121,7 @@ function StaffFormModal({
       if (editing === null) {
         await createStaff(payload);
       } else {
-        await updateStaff(editing.id, payload);
+        await updateStaff(editing._id, payload);
       }
       onClose();
       onSaved();
@@ -284,7 +284,9 @@ export default function StaffManagementScreen() {
   const load = useCallback(async () => {
     try {
       const res = await getStaff({ size: 100 });
-      setStaffList(res.content ?? []);
+      // Handle both paginated { content: [] } and plain array responses
+      const list = Array.isArray(res) ? res : (res.content ?? []);
+      setStaffList(list);
     } catch {
       setStaffList([]);
     } finally {
@@ -324,7 +326,7 @@ export default function StaffManagementScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive', onPress: async () => {
-          try { await softDeleteStaff(s.id); load(); }
+          try { await softDeleteStaff(s._id); load(); }
           catch (err) { Alert.alert('Error', errMsg(err)); }
         },
       },
@@ -406,7 +408,7 @@ export default function StaffManagementScreen() {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => item._id ?? `staff-${index}`}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => (

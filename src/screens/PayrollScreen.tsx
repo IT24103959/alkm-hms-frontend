@@ -45,7 +45,7 @@ function PayrollRow({
   return (
     <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={styles.cardTop}>
-        <Text style={[styles.cardName, { color: theme.text }]}>{item.staffName ?? `Staff #${item.staffId}`}</Text>
+        <Text style={[styles.cardName, { color: theme.text }]}>{item.staff?.name ?? `Staff #${item._id}`}</Text>
         <Text style={[styles.cardPeriod, { color: theme.textSecondary }]}>{monthLabel(item.month, item.year)}</Text>
       </View>
       <View style={styles.cardGrid}>
@@ -108,7 +108,7 @@ function CalculateModal({
     setError('');
     setSubmitting(true);
     try {
-      await calculatePayroll({ staffId: Number(staffId), month: m, year: y });
+      await calculatePayroll({ staffId: staffId, month: m, year: y });
       onClose();
       onDone();
     } catch (err) {
@@ -129,9 +129,9 @@ function CalculateModal({
           <ScrollView style={[styles.staffPicker, { borderColor:  '#e5e7eb' }]} nestedScrollEnabled>
             {staff.map((s) => (
               <Pressable
-                key={s.id}
-                style={[styles.staffOption, staffId === String(s.id) && { backgroundColor: '#3b82f622' }]}
-                onPress={() => setStaffId(String(s.id))}>
+                key={s._id}
+                style={[styles.staffOption, staffId === s._id && { backgroundColor: '#3b82f622' }]}
+                onPress={() => setStaffId(s._id)}>
                 <Text style={{ color: theme.text }}>{s.name}</Text>
                 <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{s.position}</Text>
               </Pressable>
@@ -184,7 +184,8 @@ export default function PayrollScreen() {
       if (isManager) {
         const [payroll, staffList] = await Promise.all([getAllPayroll(), getStaff({ page: 0, size: 200 })]);
         setRows(payroll);
-        setStaff(staffList.content ?? []);
+        const list = Array.isArray(staffList) ? staffList : (staffList.content ?? []);
+        setStaff(list);
       } else {
         const payroll = await getMyPayroll();
         setRows(payroll);
@@ -218,7 +219,7 @@ export default function PayrollScreen() {
       ) : (
         <FlatList
           data={rows}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item) => item._id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => <PayrollRow item={item} theme={theme} />}
           ListEmptyComponent={<Text style={[styles.empty, { color: theme.textSecondary }]}>No payroll records found.</Text>}

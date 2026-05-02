@@ -28,12 +28,14 @@ export const changeMyPassword = async (payload: { currentPassword: string; newPa
 // ─── Staff ───────────────────────────────────────────────────────────────────
 
 export interface StaffMember {
-  id: number; name: string; username?: string; password?: string;
+  _id: string; name: string; username?: string; password?: string;
   position: string; basicSalary: number;
   attendance?: number; overtimeHours?: number; absentDays?: number;
   overtimeRate?: number; dailyRate?: number;
+  status?: string;
+  user?: { _id: string; username: string; fullName: string; role: string } | null;
 }
-export interface StaffListResponse { content: StaffMember[]; totalElements: number; }
+export interface StaffListResponse { content: StaffMember[]; total: number; totalPages: number; }
 
 export const getStaff = async (params?: { name?: string; page?: number; size?: number }): Promise<StaffListResponse> => {
   const q = new URLSearchParams();
@@ -42,23 +44,25 @@ export const getStaff = async (params?: { name?: string; page?: number; size?: n
   if (params?.size !== undefined) q.set('size', String(params.size));
   const { data } = await http<StaffListResponse>(`/staff?${q.toString()}`); return data;
 };
-export const getStaffById = async (id: number): Promise<StaffMember> => {
+export const getStaffById = async (id: string): Promise<StaffMember> => {
   const { data } = await http<StaffMember>(`/staff/${id}`); return data;
 };
-export const createStaff = async (payload: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
+export const createStaff = async (payload: Omit<StaffMember, '_id' | 'status' | 'user'>): Promise<StaffMember> => {
   const { data } = await http<StaffMember>('/staff', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
-export const updateStaff = async (id: number, payload: Partial<StaffMember>): Promise<StaffMember> => {
+export const updateStaff = async (id: string, payload: Partial<StaffMember>): Promise<StaffMember> => {
   const { data } = await http<StaffMember>(`/staff/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
 };
-export const softDeleteStaff = async (id: number): Promise<void> => {
+export const softDeleteStaff = async (id: string): Promise<void> => {
   await http<void>(`/staff/${id}`, { method: 'DELETE' });
 };
 
 // ─── Payroll ─────────────────────────────────────────────────────────────────
 
 export interface PayrollRecord {
-  id: number; staffId?: number; staffName?: string; month: number; year: number;
+  _id: string;
+  staff?: { _id: string; name: string; position: string; basicSalary: number };
+  month: number; year: number;
   basicSalary?: number; overtimePay?: number; deductions?: number; netSalary?: number;
 }
 
@@ -68,14 +72,14 @@ export const getAllPayroll = async (): Promise<PayrollRecord[]> => {
 export const getMyPayroll = async (): Promise<PayrollRecord[]> => {
   const { data } = await http<PayrollRecord[]>('/payroll/my'); return data;
 };
-export const calculatePayroll = async (payload: { staffId: number; month: number; year: number }): Promise<PayrollRecord> => {
+export const calculatePayroll = async (payload: { staffId: string; month: number; year: number }): Promise<PayrollRecord> => {
   const { data } = await http<PayrollRecord>('/payroll/calculate', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
 
 // ─── Rooms ───────────────────────────────────────────────────────────────────
 
 export interface Room {
-  id: number; roomNumber: string; roomType: string;
+  _id: string; roomNumber: string; roomType: string;
   photoUrl?: string; roomDescription?: string;
   capacity?: number; totalRooms?: number; remainingRooms?: number;
   normalPrice?: number; weekendPrice?: number; seasonalPrice?: number;
@@ -90,20 +94,20 @@ export const getRooms = async (params?: { checkInDate?: string; checkOutDate?: s
   const path = qs.length > 0 ? `/rooms?${qs}` : '/rooms';
   const { data } = await http<Room[]>(path); return data;
 };
-export const createRoomRecord = async (payload: Omit<Room, 'id'>): Promise<Room> => {
+export const createRoomRecord = async (payload: Omit<Room, '_id'>): Promise<Room> => {
   const { data } = await http<Room>('/rooms', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
-export const updateRoomRecord = async (id: number, payload: Partial<Room>): Promise<Room> => {
+export const updateRoomRecord = async (id: string, payload: Partial<Room>): Promise<Room> => {
   const { data } = await http<Room>(`/rooms/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
 };
-export const deleteRoomRecord = async (id: number): Promise<void> => {
+export const deleteRoomRecord = async (id: string): Promise<void> => {
   await http<void>(`/rooms/${id}`, { method: 'DELETE' });
 };
 
 // ─── Room Bookings ────────────────────────────────────────────────────────────
 
 export interface RoomBooking {
-  id: number; bookingCustomer?: string; customerEmail?: string;
+  _id: string; bookingCustomer?: string; customerEmail?: string;
   roomNumber: string; bookedRooms?: number; guestCount?: number;
   checkInDate: string; checkOutDate: string; bookingStatus?: string;
 }
@@ -114,19 +118,19 @@ export const getRoomBookings = async (): Promise<RoomBooking[]> => {
 export const getMyRoomBookings = async (): Promise<RoomBooking[]> => {
   const { data } = await http<RoomBooking[]>('/room-bookings/my'); return data;
 };
-export const createRoomBooking = async (payload: Omit<RoomBooking, 'id'>): Promise<RoomBooking> => {
+export const createRoomBooking = async (payload: Omit<RoomBooking, '_id'>): Promise<RoomBooking> => {
   const { data } = await http<RoomBooking>('/room-bookings', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
-export const updateRoomBooking = async (id: number, payload: Partial<RoomBooking>): Promise<RoomBooking> => {
+export const updateRoomBooking = async (id: string, payload: Partial<RoomBooking>): Promise<RoomBooking> => {
   const { data } = await http<RoomBooking>(`/room-bookings/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
 };
-export const deleteRoomBooking = async (id: number): Promise<void> => {
+export const deleteRoomBooking = async (id: string): Promise<void> => {
   await http<void>(`/room-bookings/${id}`, { method: 'DELETE' });
 };
-export const requestRoomBookingCancellation = async (id: number): Promise<void> => {
+export const requestRoomBookingCancellation = async (id: string): Promise<void> => {
   await http<void>(`/room-bookings/${id}/request-cancellation`, { method: 'PATCH' });
 };
-export const approveRoomBookingCancellation = async (id: number): Promise<void> => {
+export const approveRoomBookingCancellation = async (id: string): Promise<void> => {
   await http<void>(`/room-bookings/${id}/approve-cancellation`, { method: 'PATCH' });
 };
 

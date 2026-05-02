@@ -34,13 +34,13 @@ import { Spacing } from '@/constants/theme';
 const ROOM_TYPES = ['STANDARD', 'DELUXE', 'SUITE', 'FAMILY'];
 const ROOM_STATUSES = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE'];
 
-const BLANK_ROOM: Omit<Room, 'id'> = {
+const BLANK_ROOM: Omit<Room, '_id'> = {
   roomNumber: '', roomType: 'STANDARD', photoUrl: '', roomDescription: '',
   capacity: 1, totalRooms: 1, normalPrice: 0, weekendPrice: 0, seasonalPrice: 0,
   roomStatus: 'AVAILABLE',
 };
 
-const BLANK_BOOKING: Omit<RoomBooking, 'id'> = {
+const BLANK_BOOKING: Omit<RoomBooking, '_id'> = {
   bookingCustomer: '', customerEmail: '', roomNumber: '',
   bookedRooms: 1, guestCount: 1, checkInDate: '', checkOutDate: '',
 };
@@ -65,7 +65,7 @@ function RoomFormModal({
   theme: ReturnType<typeof useTheme>; 
   onClose: () => void; onSaved: () => void;
 }>) {
-  const [form, setForm] = useState<Omit<Room, 'id'>>(BLANK_ROOM);
+  const [form, setForm] = useState<Omit<Room, '_id'>>(BLANK_ROOM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -101,10 +101,18 @@ function RoomFormModal({
     setError('');
     setSubmitting(true);
     try {
+      const payload = {
+        ...form,
+        capacity: Number(form.capacity),
+        totalRooms: Number(form.totalRooms),
+        normalPrice: Number(form.normalPrice),
+        weekendPrice: Number(form.weekendPrice),
+        seasonalPrice: Number(form.seasonalPrice),
+      };
       if (editing === null) {
-        await createRoomRecord(form);
+        await createRoomRecord(payload);
       } else {
-        await updateRoomRecord(editing.id, form);
+        await updateRoomRecord(editing._id, payload);
       }
       onClose();
       onSaved();
@@ -126,6 +134,9 @@ function RoomFormModal({
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Room Type</Text>
             <ChipRow options={ROOM_TYPES} value={form.roomType} onChange={set('roomType')} theme={theme} />
+
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Photo URL</Text>
+            <TextInput style={inputStyle} value={form.photoUrl ?? ''} onChangeText={set('photoUrl')} placeholder="https://example.com/photo.jpg" placeholderTextColor={theme.textSecondary} autoCapitalize="none" />
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Description</Text>
             <TextInput style={[...inputStyle, styles.textarea]} value={form.roomDescription} onChangeText={set('roomDescription')} multiline numberOfLines={3} placeholder="Room description" placeholderTextColor={theme.textSecondary} />
@@ -152,6 +163,11 @@ function RoomFormModal({
               </View>
             </View>
 
+            <View style={{ marginBottom: 4 }}>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Seasonal Price</Text>
+              <TextInput style={inputStyle} value={String(form.seasonalPrice ?? 0)} onChangeText={setNum('seasonalPrice')} keyboardType="numeric" />
+            </View>
+
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Status</Text>
             <ChipRow options={ROOM_STATUSES} value={form.roomStatus ?? 'AVAILABLE'} onChange={set('roomStatus')} theme={theme} />
 
@@ -175,7 +191,7 @@ function BookingFormModal({
   visible: boolean; theme: ReturnType<typeof useTheme>;
   onClose: () => void; onSaved: () => void;
 }>) {
-  const [form, setForm] = useState<Omit<RoomBooking, 'id'>>(BLANK_BOOKING);
+  const [form, setForm] = useState<Omit<RoomBooking, '_id'>>(BLANK_BOOKING);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -294,7 +310,7 @@ export default function RoomManagementScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
-          try { await deleteRoomRecord(room.id); load(); }
+          try { await deleteRoomRecord(room._id); load(); }
           catch (err) { Alert.alert('Error', errMsg(err)); }
         },
       },
@@ -306,7 +322,7 @@ export default function RoomManagementScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
-          try { await deleteRoomBooking(b.id); load(); }
+          try { await deleteRoomBooking(b._id); load(); }
           catch (err) { Alert.alert('Error', errMsg(err)); }
         },
       },
@@ -314,7 +330,7 @@ export default function RoomManagementScreen() {
   };
 
   const handleApproveCancel = async (b: RoomBooking) => {
-    try { await approveRoomBookingCancellation(b.id); load(); }
+    try { await approveRoomBookingCancellation(b._id); load(); }
     catch (err) { Alert.alert('Error', errMsg(err)); }
   };
 
@@ -361,7 +377,7 @@ export default function RoomManagementScreen() {
       {!loading && tab === 'rooms' && (
         <FlatList
           data={rooms}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => item._id ?? `room-${index}`}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => (
@@ -392,7 +408,7 @@ export default function RoomManagementScreen() {
       {!loading && tab === 'bookings' && (
         <FlatList
           data={bookings}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => item._id ?? `booking-${index}`}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => (
