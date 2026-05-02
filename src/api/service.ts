@@ -28,7 +28,8 @@ export const changeMyPassword = async (payload: { currentPassword: string; newPa
 // ─── Staff ───────────────────────────────────────────────────────────────────
 
 export interface StaffMember {
-  id: number; name: string; position: string; basicSalary: number;
+  id: number; name: string; username?: string; password?: string;
+  position: string; basicSalary: number;
   attendance?: number; overtimeHours?: number; absentDays?: number;
   overtimeRate?: number; dailyRate?: number;
 }

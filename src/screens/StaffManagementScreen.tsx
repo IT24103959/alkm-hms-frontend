@@ -27,12 +27,12 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 const POSITIONS = [
-  'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE_STAFF',
-  'CHEF', 'WAITER', 'SECURITY', 'EVENT_COORDINATOR', 'ACCOUNTANT', 'HR',
+  'Manager', 'Staff Member', 'Customer', 'Restaurant Manager',
+  'Event Manager', 'Housekeeper', 'Maintenance Staff',
 ] as const;
 
 const BLANK: Omit<StaffMember, 'id'> = {
-  name: '', position: 'RECEPTIONIST', basicSalary: 0,
+  name: '', username: '', password: '', position: 'Manager', basicSalary: 0,
   attendance: 0, overtimeHours: 0, absentDays: 0, overtimeRate: 0, dailyRate: 0,
 };
 
@@ -63,7 +63,9 @@ function StaffFormModal({
     } else {
       setForm({
         name: editing.name ?? '',
-        position: editing.position ?? 'RECEPTIONIST',
+        username: editing.username ?? '',
+        password: '',
+        position: editing.position ?? '',
         basicSalary: editing.basicSalary ?? 0,
         attendance: editing.attendance ?? 0,
         overtimeHours: editing.overtimeHours ?? 0,
@@ -91,11 +93,20 @@ function StaffFormModal({
       setError('Staff name is required.');
       return;
     }
+    if (editing === null && !form.username?.trim()) {
+      setError('Username is required.');
+      return;
+    }
+    if (editing === null && !form.password?.trim()) {
+      setError('Password is required for new staff.');
+      return;
+    }
     setError('');
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: Omit<StaffMember, 'id'> = {
         ...form,
+        position: form.position.toUpperCase().replaceAll(' ', '_'),
         basicSalary: Number(form.basicSalary),
         attendance: Number(form.attendance),
         overtimeHours: Number(form.overtimeHours),
@@ -103,6 +114,10 @@ function StaffFormModal({
         overtimeRate: Number(form.overtimeRate),
         dailyRate: Number(form.dailyRate),
       };
+      // Don't send empty password on edit
+      if (editing !== null && !payload.password?.trim()) {
+        delete payload.password;
+      }
       if (editing === null) {
         await createStaff(payload);
       } else {
@@ -140,6 +155,33 @@ function StaffFormModal({
               placeholderTextColor={theme.textSecondary}
             />
 
+            <View style={styles.rowFields}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Username</Text>
+                <TextInput
+                  style={inputStyle}
+                  value={form.username ?? ''}
+                  onChangeText={set('username')}
+                  placeholder="e.g. john_doe"
+                  placeholderTextColor={theme.textSecondary}
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                  {editing === null ? 'Password' : 'New Password (optional)'}
+                </Text>
+                <TextInput
+                  style={inputStyle}
+                  value={form.password ?? ''}
+                  onChangeText={set('password')}
+                  placeholder={editing === null ? 'Set password' : 'Leave blank to keep'}
+                  placeholderTextColor={theme.textSecondary}
+                  secureTextEntry
+                />
+              </View>
+            </View>
+
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Position</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
               {POSITIONS.map((pos) => {
@@ -153,7 +195,7 @@ function StaffFormModal({
                       active && { backgroundColor: theme.primary, borderColor: theme.primary },
                     ]}>
                     <Text style={[styles.chipText, { color: active ? '#fff' : theme.textSecondary }]}>
-                      {pos.replaceAll('_', ' ')}
+                      {pos}
                     </Text>
                   </Pressable>
                 );
