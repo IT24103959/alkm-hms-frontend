@@ -4,7 +4,7 @@ export type { ApiError } from './http';
 
 // NestJS room-operations service
 const ROOM_SERVICE_BASE_URL =
-  process.env.EXPO_PUBLIC_ROOM_SERVICE_BASE_URL ?? 'http://localhost:5001/api/v1';
+  process.env.EXPO_PUBLIC_ROOM_SERVICE_BASE_URL ?? 'http://localhost:5000/api/v1';
 
 export async function roomServiceHttp<T>(
   path: string,
@@ -35,6 +35,15 @@ export async function roomServiceHttp<T>(
     throw error;
   }
 
-  const data = await response.json();
+  const json = await response.json();
+  // Spring Boot / NestJS envelope: { status: "success", message: "...", data: <payload> }
+  const isEnvelope = (
+    json !== null &&
+    typeof json === 'object' &&
+    typeof (json as Record<string, unknown>).status === 'string' &&
+    typeof (json as Record<string, unknown>).message === 'string' &&
+    'data' in (json as Record<string, unknown>)
+  );
+  const data: T = isEnvelope ? (json as { data: T }).data : (json as T);
   return { data };
 }

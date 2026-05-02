@@ -20,6 +20,7 @@ import {
   createEventBooking,
   deleteEventBooking,
   getEventAnalytics,
+  type EventAnalytics,
   getEventBookings,
   updateEventBooking,
   type EventBooking,
@@ -203,7 +204,7 @@ export default function EventManagementScreen() {
   const theme = useTheme();
 
   const [bookings, setBookings] = useState<EventBooking[]>([]);
-  const [analytics, setAnalytics] = useState<Record<string, number>>({});
+  const [analytics, setAnalytics] = useState<EventAnalytics | null>(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -255,31 +256,48 @@ export default function EventManagementScreen() {
         </Pressable>
       </View>
 
-      {/* Analytics */}
-      {Object.keys(analytics).length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.analyticsRow} contentContainerStyle={styles.analyticsContent}>
-          {Object.entries(analytics).map(([key, val]) => (
-            <View key={key} style={styles.analyticsChip}>
-              <Text style={[styles.analyticsVal, { color: theme.accent }]}>{val}</Text>
-              <Text style={[styles.analyticsKey, { color: theme.textSecondary }]}>{key.replaceAll('_', ' ')}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      )}
+      {/* Analytics + Status Filter */}
+      <View style={[styles.sidebar, { borderBottomColor: theme.border }]}>
 
-      {/* Status Filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.filterRow, { borderBottomColor: theme.border }]} contentContainerStyle={{ paddingHorizontal: Spacing.four, paddingVertical: 10, gap: 8 }}>
-        {(['ALL', ...STATUSES]).map((s) => {
-          const active = statusFilter === s;
-          const color = STATUS_COLORS[s] ?? '#6b7280';
-          return (
-            <Pressable key={s} onPress={() => setStatusFilter(s)}
-              style={[styles.statusChip, { borderColor: active ? color : theme.border, backgroundColor: active ? color + '22' : 'transparent' }]}>
-              <Text style={[styles.statusChipText, { color: active ? color : theme.textSecondary }]}>{s === 'ALL' ? 'All' : s}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+        {/* Analytics */}
+        <View style={[styles.analyticsBlock, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>ANALYTICS</Text>
+          <View style={styles.analyticsGrid}>
+            <View style={[styles.analyticsChip, { flex: 1 }]}>
+              <Text style={[styles.analyticsVal, { color: theme.accent }]}>{analytics?.events ?? 0}</Text>
+              <Text style={[styles.analyticsKey, { color: theme.textSecondary }]}>BOOKINGS</Text>
+            </View>
+            <View style={[styles.analyticsChip, { flex: 1 }]}>
+              <Text style={[styles.analyticsVal, { color: theme.accent }]}>Rs. {(analytics?.eventRevenue ?? 0).toLocaleString()}</Text>
+              <Text style={[styles.analyticsKey, { color: theme.textSecondary }]}>REVENUE</Text>
+            </View>
+            {analytics?.popularTypes != null && Object.entries(analytics.popularTypes).map(([k, v]) => (
+              <View key={k} style={[styles.analyticsChip, { flex: 1 }]}>
+                <Text style={[styles.analyticsVal, { color: theme.accent }]}>{v}</Text>
+                <Text style={[styles.analyticsKey, { color: theme.textSecondary }]}>{k.replaceAll('_', ' ')}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Status Filter */}
+        <View style={styles.filterBlock}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>FILTER BY STATUS</Text>
+          <View style={styles.statusChips}>
+            {(['ALL', ...STATUSES]).map((s) => {
+              const active = statusFilter === s;
+              const color = STATUS_COLORS[s] ?? '#6b7280';
+              return (
+                <Pressable key={s} onPress={() => setStatusFilter(s)}
+                  style={[styles.statusChip, { borderColor: active ? color : theme.border, backgroundColor: active ? color + '22' : 'transparent' }]}>
+                  <Text style={[styles.statusChipText, { color: active ? color : theme.textSecondary }]}>{s === 'ALL' ? 'All' : s}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color={theme.text} style={{ marginTop: 40 }} />
@@ -344,10 +362,16 @@ const styles = StyleSheet.create({
   newBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   analyticsRow: { borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   analyticsContent: { paddingHorizontal: Spacing.four, paddingVertical: 10, gap: 12 },
+  sidebar: { borderBottomWidth: 1, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two, gap: Spacing.three },
+  analyticsBlock: { borderBottomWidth: 1, paddingBottom: Spacing.two, gap: Spacing.two },
+  sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 2 },
+  analyticsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   analyticsChip: { alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: '#ffb70318' },
   analyticsVal: { fontSize: 20, fontWeight: '700' },
   analyticsKey: { fontSize: 11, textTransform: 'uppercase' },
+  filterBlock: { gap: Spacing.two },
   filterRow: { borderBottomWidth: 1 },
+  statusChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   statusChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   statusChipText: { fontSize: 12, fontWeight: '600' },
   list: { padding: Spacing.three, gap: Spacing.two, paddingBottom: Spacing.six },

@@ -271,22 +271,29 @@ export default function MaintenanceScreen() {
         )}
       </View>
 
-      {/* Stats */}
-      {stats && (
-        <View style={styles.statsRow}>
-          <StatItem label="Total" value={stats.total} color="#8b5cf6" />
-          <StatItem label="Open" value={stats.open} color="#ef4444" />
-          <StatItem
-            label="In Progress"
-            value={tickets.filter((t) => t.status === 'IN_PROGRESS').length}
-            color="#3b82f6"
-          />
-          <StatItem label="Resolved" value={stats.resolved} color="#10b981" />
-        </View>
-      )}
+      {/* Stats + Filters panel */}
+      <View style={[styles.controlPanel, { borderBottomColor: theme.border }]}>
 
-      {/* Search + Filters */}
-      <View style={[styles.filterBar, { borderBottomColor: theme.border }]}>
+        <View style={[styles.statsBlock, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statsGridRow}>
+              <StatItem label="Total" value={stats?.total ?? 0} color="#8b5cf6" />
+              <StatItem label="Open" value={stats?.open ?? 0} color="#ef4444" />
+            </View>
+            <View style={styles.statsGridRow}>
+              <StatItem
+                label="In Progress"
+                value={tickets.filter((t) => t.status === 'IN_PROGRESS').length}
+                color="#3b82f6"
+              />
+              <StatItem label="Resolved" value={stats?.resolved ?? 0} color="#10b981" />
+            </View>
+          </View>
+        </View>
+
+        {/* Search + Filters */}
+        <View style={styles.filterSection}>
         <TextInput
           style={[
             styles.searchInput,
@@ -319,6 +326,7 @@ export default function MaintenanceScreen() {
             ),
           )}
         </ScrollView>
+        </View>
       </View>
 
       {loading ? (
@@ -631,19 +639,40 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   newBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  statsRow: {
-    flexDirection: 'row',
+  controlPanel: {
+    borderBottomWidth: 1,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
+    gap: Spacing.two,
+  },
+  panelLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 2 },
+  statsBlock: {
+    borderBottomWidth: 1,
+    paddingBottom: Spacing.two,
+    gap: Spacing.two,
+  },
+  statsGrid: {
+    gap: Spacing.two,
+  },
+  statsGridRow: {
+    flexDirection: 'row',
     gap: Spacing.two,
   },
   statItem: {
     flex: 1,
     borderLeftWidth: 3,
     paddingLeft: 8,
+    paddingVertical: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    gap: Spacing.two,
   },
   statValue: { fontSize: 20, fontWeight: '700' },
   statLabel: { fontSize: 11, color: '#9ca3af' },
+  filterSection: { gap: Spacing.two },
   filterBar: {
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.two,

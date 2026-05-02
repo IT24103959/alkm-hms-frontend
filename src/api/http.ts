@@ -39,7 +39,17 @@ export async function http<T>(path: string, options: RequestInit = {}): Promise<
     throw error;
   }
 
-  const data = await response.json();
+  const json = await response.json();
+  // Spring Boot wraps responses: { status: "success", message: "...", data: <payload> }
+  // Detect the envelope and unwrap so callers always get the inner payload.
+  const isEnvelope = (
+    json !== null &&
+    typeof json === 'object' &&
+    typeof (json as Record<string, unknown>).status === 'string' &&
+    typeof (json as Record<string, unknown>).message === 'string' &&
+    'data' in (json as Record<string, unknown>)
+  );
+  const data: T = isEnvelope ? (json as { data: T }).data : (json as T);
   return { data };
 }
 

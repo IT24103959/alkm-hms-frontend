@@ -207,6 +207,7 @@ export const updateEventBooking = async (id: number, payload: Partial<EventBooki
 export const deleteEventBooking = async (id: number): Promise<void> => {
   await http<void>(`/event-bookings/${id}`, { method: 'DELETE' });
 };
-export const getEventAnalytics = async (): Promise<Record<string, number>> => {
-  const { data } = await http<Record<string, number>>('/event-bookings/analytics'); return data;
+export interface EventAnalytics { events: number; eventRevenue: number; popularTypes?: Record<string, number>; }
+export const getEventAnalytics = async (): Promise<EventAnalytics> => {
+  const { data } = await http<EventAnalytics>('/event-bookings/analytics'); return data;
 };
