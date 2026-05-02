@@ -467,16 +467,16 @@ export default function HousekeepingScreen() {
           <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statsGridRow}>
-                <StatItem label="Total" value={stats?.total ?? 0} color="#8b5cf6" />
-                <StatItem label="Pending" value={stats?.pending ?? 0} color="#ef4444" />
+                <StatItem label="Total" value={stats?.totalTasks ?? 0} color="#8b5cf6" />
+                <StatItem label="Pending" value={stats?.pendingTasks ?? 0} color="#ef4444" />
               </View>
               <View style={styles.statsGridRow}>
                 <StatItem
                   label="In Progress"
-                  value={tasks.filter((t) => t.status === "IN_PROGRESS").length}
+                  value={stats?.inProgressTasks ?? 0}
                   color="#3b82f6"
                 />
-                <StatItem label="Inspected" value={stats?.inspected ?? 0} color="#10b981" />
+                <StatItem label="Completed" value={stats?.completedTasks ?? 0} color="#10b981" />
             </View>
           </View>
         </View>

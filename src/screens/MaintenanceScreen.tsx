@@ -295,17 +295,37 @@ export default function MaintenanceScreen() {
           <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statsGridRow}>
-              <StatItem label="Total" value={stats?.total ?? 0} color="#8b5cf6" />
-              <StatItem label="Open" value={stats?.open ?? 0} color="#ef4444" />
+              <StatItem label="Total" value={stats?.totalTickets ?? 0} color="#8b5cf6" />
+              <StatItem label="Open" value={stats?.openTickets ?? 0} color="#ef4444" />
             </View>
             <View style={styles.statsGridRow}>
               <StatItem
                 label="In Progress"
-                value={tickets.filter((t) => t.status === 'IN_PROGRESS').length}
+                value={stats?.inProgressTickets ?? 0}
                 color="#3b82f6"
               />
-              <StatItem label="Resolved" value={stats?.resolved ?? 0} color="#10b981" />
+              <StatItem label="Resolved" value={stats?.resolvedTickets ?? 0} color="#10b981" />
             </View>
+            <View style={styles.statsGridRow}>
+              <StatItem label="Overdue" value={stats?.overdueTickets ?? 0} color="#f97316" />
+              <View style={[styles.statItem, { borderLeftColor: '#64748b' }]}>
+                <Text style={[styles.statValue, { color: '#64748b' }]}>
+                  {stats?.avgResolutionTimeHours ?? '0.00'}h
+                </Text>
+                <Text style={styles.statLabel}>Avg Resolution</Text>
+              </View>
+            </View>
+            {stats?.recurringIssues && stats.recurringIssues.length > 0 && (
+              <View style={[styles.recurringBlock, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+                <Text style={[styles.recurringTitle, { color: theme.textSecondary }]}>RECURRING ISSUES</Text>
+                {stats.recurringIssues.map((issue) => (
+                  <View key={issue._id} style={styles.recurringRow}>
+                    <Text style={[styles.recurringLabel, { color: theme.text }]}>{issue._id.replaceAll('_', ' ')}</Text>
+                    <Text style={[styles.recurringCount, { color: '#f97316' }]}>{issue.count}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -732,6 +752,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.two,
   },
+  recurringBlock: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: Spacing.two,
+    gap: 4,
+  },
+  recurringTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  recurringRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  recurringLabel: { fontSize: 13, fontWeight: '500' },
+  recurringCount: { fontSize: 13, fontWeight: '700' },
   statItem: {
     flex: 1,
     borderLeftWidth: 3,

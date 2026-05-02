@@ -18,10 +18,12 @@ export interface HousekeepingTask {
 }
 
 export interface HousekeepingStats {
-  total: number;
-  pending: number;
-  inProgress?: number;
-  inspected: number;
+  totalTasks: number;
+  pendingTasks: number;
+  inProgressTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  avgCompletionTimeHours: string;
 }
 
 export interface MaintenanceTicket {
@@ -41,10 +43,13 @@ export interface MaintenanceTicket {
 }
 
 export interface MaintenanceStats {
-  total: number;
-  open: number;
-  inProgress?: number;
-  resolved: number;
+  totalTickets: number;
+  openTickets: number;
+  inProgressTickets: number;
+  resolvedTickets: number;
+  overdueTickets: number;
+  avgResolutionTimeHours: string;
+  recurringIssues: Array<{ _id: string; count: number }>;
 }
 
 export interface RoomServiceStaff {
