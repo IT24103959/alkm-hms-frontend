@@ -16,16 +16,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import DateTimePickerField from '@/components/DateTimePickerField';
+
 import {
   createMaintenanceTicket,
   deleteMaintenanceTicket,
   getMaintenanceStats,
   getMaintenanceTickets,
+  getRooms,
   updateMaintenanceTicket,
   updateMaintenanceTicketStatus,
   type MaintenanceStats,
   type MaintenanceTicket,
+  type Room,
 } from '@/api/roomService';
+import { getStaff, type StaffMember } from '@/api/service';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
@@ -57,7 +62,7 @@ const initialForm = {
   issueDescription: '',
   status: 'OPEN' as string,
   priority: 'MEDIUM' as string,
-  staffId: '',
+  staff: '',
   deadline: '',
   resolutionNotes: '',
   partsUsed: '',
@@ -144,6 +149,8 @@ export default function MaintenanceScreen() {
 
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
   const [stats, setStats] = useState<MaintenanceStats | null>(null);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -156,12 +163,22 @@ export default function MaintenanceScreen() {
   const canManage = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role ?? '');
 
   const loadData = useCallback(async () => {
-    const [ticketsRes, statsRes] = await Promise.allSettled([
+    const [ticketsRes, statsRes, staffRes, roomsRes] = await Promise.allSettled([
       getMaintenanceTickets(),
       getMaintenanceStats(),
+      getStaff({ role: 'MAINTENANCE_STAFF', size: 200 }),
+      getRooms(),
     ]);
-    if (ticketsRes.status === 'fulfilled') setTickets(ticketsRes.value.data ?? []);
+    if (ticketsRes.status === 'fulfilled') {
+      const raw = ticketsRes.value.data;
+      setTickets(Array.isArray(raw) ? raw : ((raw as { content?: MaintenanceTicket[] }).content ?? []));
+    }
     if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+    if (staffRes.status === 'fulfilled') setStaff(staffRes.value.content ?? []);
+    if (roomsRes.status === 'fulfilled') {
+      const raw = roomsRes.value.data;
+      setRooms(Array.isArray(raw) ? raw : ((raw as { content?: Room[] }).content ?? []));
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -206,7 +223,7 @@ export default function MaintenanceScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteMaintenanceTicket(ticket.id);
+              await deleteMaintenanceTicket(ticket._id);
               loadData();
             } catch (err) {
               Alert.alert('Error', getErrMsg(err, 'Unable to delete ticket.'));
@@ -227,7 +244,7 @@ export default function MaintenanceScreen() {
           text: formatLabel(s),
           onPress: async () => {
             try {
-              await updateMaintenanceTicketStatus(ticket.id, s);
+              await updateMaintenanceTicketStatus(ticket._id, s);
               loadData();
             } catch (err) {
               Alert.alert('Error', getErrMsg(err, 'Could not update status.'));
@@ -334,7 +351,7 @@ export default function MaintenanceScreen() {
       ) : (
         <FlatList
           data={filteredTickets}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => item._id ?? `ticket-${index}`}
           renderItem={renderTicket}
           contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -347,6 +364,8 @@ export default function MaintenanceScreen() {
       <MaintenanceFormModal
         visible={modalVisible}
         editingTicket={editingTicket}
+        staff={staff}
+        rooms={rooms}
         theme={theme}
         onClose={() => setModalVisible(false)}
         onSaved={loadData}
@@ -440,12 +459,16 @@ function TicketCard({
 function MaintenanceFormModal({
   visible,
   editingTicket,
+  staff,
+  rooms,
   theme,
   onClose,
   onSaved,
 }: Readonly<{
   visible: boolean;
   editingTicket: MaintenanceTicket | null;
+  staff: StaffMember[];
+  rooms: Room[];
   theme: ReturnType<typeof useTheme>;
   onClose: () => void;
   onSaved: () => void;
@@ -469,7 +492,7 @@ function MaintenanceFormModal({
         issueDescription: editingTicket.issueDescription ?? '',
         status: editingTicket.status ?? 'OPEN',
         priority: editingTicket.priority ?? 'MEDIUM',
-        staffId: editingTicket.staffId?.toString() ?? '',
+        staff: editingTicket.assignedStaff?._id ?? editingTicket.staff ?? '',
         deadline: editingTicket.deadline?.slice(0, 16) ?? '',
         resolutionNotes: editingTicket.resolutionNotes ?? '',
         partsUsed: editingTicket.partsUsed ?? '',
@@ -492,20 +515,26 @@ function MaintenanceFormModal({
     }
     setFormError('');
     setSubmitting(true);
-    const payload = {
+    const deadlineIso = form.deadline ? new Date(form.deadline).toISOString() : undefined;
+    const basePayload = {
       roomNumber: form.roomNumber.trim(),
       facilityType: form.facilityType,
       issueDescription: form.issueDescription.trim(),
-      status: form.status,
       priority: form.priority,
-      resolutionNotes: form.resolutionNotes || undefined,
-      partsUsed: form.partsUsed || undefined,
-      deadline: form.deadline || undefined,
-      staffId: form.staffId ? Number(form.staffId) : undefined,
+      deadline: deadlineIso,
+      staff: form.staff || undefined,
     };
+    const payload = editingTicket
+      ? {
+          ...basePayload,
+          status: form.status,
+          resolutionNotes: form.resolutionNotes || undefined,
+          partsUsed: form.partsUsed || undefined,
+        }
+      : basePayload;
     try {
       if (editingTicket) {
-        await updateMaintenanceTicket(editingTicket.id, payload);
+        await updateMaintenanceTicket(editingTicket._id, payload);
       } else {
         await createMaintenanceTicket(payload);
       }
@@ -533,8 +562,13 @@ function MaintenanceFormModal({
 
           <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
             <FormField label="Room Number" theme={theme}>
-              <TextInput style={inputStyle} placeholder="e.g. 101" placeholderTextColor={theme.textSecondary}
-                value={form.roomNumber} onChangeText={setField('roomNumber')} />
+              <SelectField
+                options={rooms.map((r) => ({ label: r.roomNumber, value: r.roomNumber }))}
+                value={form.roomNumber}
+                onChange={setField('roomNumber')}
+                placeholder="No rooms loaded"
+                theme={theme}
+              />
             </FormField>
 
             <FormField label="Facility Type" theme={theme}>
@@ -555,14 +589,22 @@ function MaintenanceFormModal({
               <ChipGroup options={ALL_STATUSES} value={form.status} onChange={setField('status')} theme={theme} />
             </FormField>
 
-            <FormField label="Staff ID (optional)" theme={theme}>
-              <TextInput style={inputStyle} placeholder="Enter staff ID" placeholderTextColor={theme.textSecondary}
-                keyboardType="numeric" value={form.staffId} onChangeText={setField('staffId')} />
+            <FormField label="Staff Member (optional)" theme={theme}>
+              <SelectField
+                options={staff.map((s) => ({ label: s.name, subLabel: s.position, value: s._id }))}
+                value={form.staff}
+                onChange={setField('staff')}
+                placeholder="No maintenance staff loaded"
+                theme={theme}
+              />
             </FormField>
 
             <FormField label="Deadline (optional)" theme={theme}>
-              <TextInput style={inputStyle} placeholder="YYYY-MM-DDTHH:MM" placeholderTextColor={theme.textSecondary}
-                value={form.deadline} onChangeText={setField('deadline')} />
+              <DateTimePickerField
+                value={form.deadline}
+                onChange={setField('deadline')}
+                mode="datetime"
+              />
             </FormField>
 
             <FormField label="Resolution Notes (optional)" theme={theme}>
@@ -592,6 +634,38 @@ function MaintenanceFormModal({
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
+  );
+}
+
+function SelectField({
+  options,
+  value,
+  onChange,
+  placeholder,
+  theme,
+}: Readonly<{
+  options: { label: string; subLabel?: string; value: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  theme: ReturnType<typeof useTheme>;
+}>) {
+  return (
+    <ScrollView
+      style={[styles.selectScroll, { borderColor: theme.border }]}
+      nestedScrollEnabled>
+      {options.length === 0 ? (
+        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>{placeholder}</Text>
+      ) : options.map((opt) => (
+        <Pressable
+          key={opt.value}
+          style={[styles.selectOption, value === opt.value && { backgroundColor: theme.primary + '22' }]}
+          onPress={() => onChange(opt.value)}>
+          <Text style={{ color: theme.text }}>{opt.label}</Text>
+          {opt.subLabel ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.subLabel}</Text> : null}
+        </Pressable>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -726,6 +800,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: { fontSize: 12, fontWeight: '500' },
+  selectScroll: { maxHeight: 160, borderWidth: 1, borderRadius: 8, marginBottom: 4 },
+  selectOption: { padding: 12, borderRadius: 6, gap: 2 },
+  selectEmpty: { padding: 12, fontSize: 13, textAlign: 'center' },
   pressed: { opacity: 0.7 },
   modalSafeArea: { flex: 1 },
   modalHeader: {

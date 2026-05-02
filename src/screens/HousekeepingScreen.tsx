@@ -21,20 +21,21 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import DateTimePickerField from "@/components/DateTimePickerField";
+
 import {
   createHousekeepingTask,
   deleteHousekeepingTask,
   getHousekeepingStats,
   getHousekeepingTasks,
-  getRoomServiceStaff,
   getRooms,
   updateHousekeepingTask,
   updateHousekeepingTaskStatus,
   type HousekeepingStats,
   type HousekeepingTask,
   type Room,
-  type RoomServiceStaff,
 } from "@/api/roomService";
+import { getStaff, type StaffMember } from "@/api/service";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing } from "@/constants/theme";
@@ -42,7 +43,7 @@ import { Spacing } from "@/constants/theme";
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const TASK_TYPES = ["CLEANING", "INSPECTION", "TURNDOWN"] as const;
-const ROOM_CONDITIONS = ["PRE OCCUPIED", "CHECKOUT", "PRE_CHECK_IN"] as const;
+const ROOM_CONDITIONS = ["OCCUPIED", "CHECKOUT", "PRE_CHECK_IN"] as const;
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH"] as const;
 const ALL_STATUSES = [
   "PENDING",
@@ -67,14 +68,13 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const initialForm = {
   roomNumber: "",
-  roomCondition: "PRE OCCUPIED" as string,
+  roomCondition: "OCCUPIED" as string,
   taskType: "CLEANING" as string,
   status: "PENDING" as string,
   priority: "MEDIUM" as string,
-  staffId: "",
+  staff: "",
   deadline: "",
   notes: "",
-  cleaningNotes: "",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ export default function HousekeepingScreen() {
   const theme = useTheme();
 
   const [tasks, setTasks] = useState<HousekeepingTask[]>([]);
-  const [staff, setStaff] = useState<RoomServiceStaff[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [stats, setStats] = useState<HousekeepingStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,13 +202,19 @@ export default function HousekeepingScreen() {
     const [tasksRes, statsRes, staffRes, roomsRes] = await Promise.allSettled([
       getHousekeepingTasks(),
       getHousekeepingStats(),
-      getRoomServiceStaff(),
+      getStaff({ role: 'HOUSEKEEPER', size: 200 }),
       getRooms(),
     ]);
-    if (tasksRes.status === "fulfilled") setTasks(tasksRes.value.data ?? []);
+    if (tasksRes.status === "fulfilled") {
+      const raw = tasksRes.value.data;
+      setTasks(Array.isArray(raw) ? raw : ((raw as { content?: HousekeepingTask[] }).content ?? []));
+    }
     if (statsRes.status === "fulfilled") setStats(statsRes.value.data);
-    if (staffRes.status === "fulfilled") setStaff(staffRes.value.data ?? []);
-    if (roomsRes.status === "fulfilled") setRooms(roomsRes.value.data ?? []);
+    if (staffRes.status === "fulfilled") setStaff(staffRes.value.content ?? []);
+    if (roomsRes.status === "fulfilled") {
+      const raw = roomsRes.value.data;
+      setRooms(Array.isArray(raw) ? raw : ((raw as { content?: Room[] }).content ?? []));
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -248,14 +254,13 @@ export default function HousekeepingScreen() {
     setEditingTask(task);
     setForm({
       roomNumber: task.roomNumber ?? "",
-      roomCondition: task.roomCondition ?? "PRE OCCUPIED",
+      roomCondition: task.roomCondition ?? "OCCUPIED",
       taskType: task.taskType ?? "CLEANING",
       status: task.status ?? "PENDING",
       priority: task.priority ?? "MEDIUM",
-      staffId: task.staffId != null ? String(task.staffId) : "",
+      staff: task.assignedStaff?._id ?? task.staff ?? "",
       deadline: task.deadline?.slice(0, 16) ?? "",
       notes: task.notes ?? "",
-      cleaningNotes: task.cleaningNotes ?? "",
     });
     setFormError("");
     setModalVisible(true);
@@ -268,20 +273,22 @@ export default function HousekeepingScreen() {
     }
     setFormError("");
     setSubmitting(true);
-    const payload = {
+    const deadlineIso = form.deadline ? new Date(form.deadline).toISOString() : undefined;
+    const basePayload = {
       roomNumber: form.roomNumber.trim(),
       roomCondition: form.roomCondition,
       taskType: form.taskType,
-      status: form.status,
       priority: form.priority,
       notes: form.notes || undefined,
-      cleaningNotes: form.cleaningNotes || undefined,
-      deadline: form.deadline || undefined,
-      staffId: form.staffId ? Number(form.staffId) : undefined,
+      deadline: deadlineIso,
+      staff: form.staff || undefined,
     };
+    const payload = editingTask
+      ? { ...basePayload, status: form.status }
+      : basePayload;
     try {
       if (editingTask) {
-        await updateHousekeepingTask(editingTask.id, payload);
+        await updateHousekeepingTask(editingTask._id, payload);
       } else {
         await createHousekeepingTask(payload);
       }
@@ -305,7 +312,7 @@ export default function HousekeepingScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteHousekeepingTask(task.id);
+              await deleteHousekeepingTask(task._id);
               loadData();
             } catch (err) {
               Alert.alert("Error", getErrMsg(err, "Unable to delete task."));
@@ -326,7 +333,7 @@ export default function HousekeepingScreen() {
           text: formatLabel(s),
           onPress: async () => {
             try {
-              await updateHousekeepingTaskStatus(task.id, s);
+              await updateHousekeepingTaskStatus(task._id, s);
               loadData();
             } catch (err) {
               Alert.alert("Error", getErrMsg(err, "Could not update status."));
@@ -539,7 +546,7 @@ export default function HousekeepingScreen() {
       ) : (
         <FlatList
           data={filteredTasks}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => item._id ?? `task-${index}`}
           renderItem={renderTask}
           contentContainerStyle={styles.listContent}
           refreshControl={
@@ -587,21 +594,12 @@ export default function HousekeepingScreen() {
               keyboardShouldPersistTaps="handled"
             >
               <FormField label="Room Number" theme={theme}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      borderColor: theme.border,
-                      backgroundColor: theme.backgroundElement,
-                    },
-                  ]}
-                  placeholder="e.g. 101"
-                  placeholderTextColor={theme.textSecondary}
+                <SelectField
+                  options={rooms.map((r) => ({ label: r.roomNumber, value: r.roomNumber }))}
                   value={form.roomNumber}
-                  onChangeText={(v) =>
-                    setForm((f) => ({ ...f, roomNumber: v }))
-                  }
+                  onChange={(v) => setForm((f) => ({ ...f, roomNumber: v }))}
+                  placeholder="No rooms loaded"
+                  theme={theme}
                 />
               </FormField>
 
@@ -641,38 +639,21 @@ export default function HousekeepingScreen() {
                 />
               </FormField>
 
-              <FormField label="Staff ID (optional)" theme={theme}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      borderColor: theme.border,
-                      backgroundColor: theme.backgroundElement,
-                    },
-                  ]}
-                  placeholder="Enter staff ID"
-                  placeholderTextColor={theme.textSecondary}
-                  keyboardType="numeric"
-                  value={form.staffId}
-                  onChangeText={(v) => setForm((f) => ({ ...f, staffId: v }))}
+              <FormField label="Staff Member (optional)" theme={theme}>
+                <SelectField
+                  options={staff.map((s) => ({ label: s.name, subLabel: s.position, value: s._id }))}
+                  value={form.staff}
+                  onChange={(v) => setForm((f) => ({ ...f, staff: v }))}
+                  placeholder="No housekeepers loaded"
+                  theme={theme}
                 />
               </FormField>
 
               <FormField label="Deadline (optional)" theme={theme}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      borderColor: theme.border,
-                      backgroundColor: theme.backgroundElement,
-                    },
-                  ]}
-                  placeholder="YYYY-MM-DDTHH:MM"
-                  placeholderTextColor={theme.textSecondary}
+                <DateTimePickerField
                   value={form.deadline}
-                  onChangeText={(v) => setForm((f) => ({ ...f, deadline: v }))}
+                  onChange={(v) => setForm((f) => ({ ...f, deadline: v }))}
+                  mode="datetime"
                 />
               </FormField>
 
@@ -693,28 +674,6 @@ export default function HousekeepingScreen() {
                   numberOfLines={3}
                   value={form.notes}
                   onChangeText={(v) => setForm((f) => ({ ...f, notes: v }))}
-                />
-              </FormField>
-
-              <FormField label="Cleaning Notes (optional)" theme={theme}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.textarea,
-                    {
-                      color: theme.text,
-                      borderColor: theme.border,
-                      backgroundColor: theme.backgroundElement,
-                    },
-                  ]}
-                  placeholder="Cleaning specific notes..."
-                  placeholderTextColor={theme.textSecondary}
-                  multiline
-                  numberOfLines={3}
-                  value={form.cleaningNotes}
-                  onChangeText={(v) =>
-                    setForm((f) => ({ ...f, cleaningNotes: v }))
-                  }
                 />
               </FormField>
 
@@ -744,6 +703,38 @@ export default function HousekeepingScreen() {
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
+  );
+}
+
+function SelectField({
+  options,
+  value,
+  onChange,
+  placeholder,
+  theme,
+}: Readonly<{
+  options: { label: string; subLabel?: string; value: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  theme: ReturnType<typeof useTheme>;
+}>) {
+  return (
+    <ScrollView
+      style={[styles.selectScroll, { borderColor: theme.border }]}
+      nestedScrollEnabled>
+      {options.length === 0 ? (
+        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>{placeholder}</Text>
+      ) : options.map((opt) => (
+        <Pressable
+          key={opt.value}
+          style={[styles.selectOption, value === opt.value && { backgroundColor: theme.primary + '22' }]}
+          onPress={() => onChange(opt.value)}>
+          <Text style={{ color: theme.text }}>{opt.label}</Text>
+          {opt.subLabel ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.subLabel}</Text> : null}
+        </Pressable>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -905,6 +896,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: { fontSize: 12, fontWeight: "500" },
+  selectScroll: { maxHeight: 160, borderWidth: 1, borderRadius: 8, marginBottom: 4 },
+  selectOption: { padding: 12, borderRadius: 6, gap: 2 },
+  selectEmpty: { padding: 12, fontSize: 13, textAlign: 'center' },
   pressed: { opacity: 0.7 },
   // Modal
   modalSafeArea: { flex: 1 },

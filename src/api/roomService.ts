@@ -3,17 +3,16 @@ import { roomServiceHttp } from './roomServiceHttp';
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface HousekeepingTask {
-  id: number;
+  _id: string;
   roomNumber: string;
   roomCondition: string;
   taskType: string;
   status: string;
   priority: string;
-  staffId?: number;
-  assignedStaff?: { id: number; name: string };
+  staff?: string;
+  assignedStaff?: { _id?: string; name: string };
   deadline?: string;
   notes?: string;
-  cleaningNotes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -26,14 +25,14 @@ export interface HousekeepingStats {
 }
 
 export interface MaintenanceTicket {
-  id: number;
+  _id: string;
   roomNumber: string;
   facilityType: string;
   issueDescription: string;
   status: string;
   priority: string;
-  staffId?: number;
-  assignedStaff?: { id: number; name: string };
+  staff?: string;
+  assignedStaff?: { _id?: string; name: string };
   deadline?: string;
   resolutionNotes?: string;
   partsUsed?: string;
@@ -55,7 +54,7 @@ export interface RoomServiceStaff {
 }
 
 export interface Room {
-  id: number;
+  _id: string;
   roomNumber: string;
   type?: string;
   status?: string;
@@ -75,20 +74,20 @@ export const createHousekeepingTask = (payload: Partial<HousekeepingTask>) =>
     body: JSON.stringify(payload),
   });
 
-export const updateHousekeepingTask = (id: number, payload: Partial<HousekeepingTask>) =>
-  roomServiceHttp<HousekeepingTask>(`/housekeeping/${id}`, {
+export const updateHousekeepingTask = (_id: string, payload: Partial<HousekeepingTask>) =>
+  roomServiceHttp<HousekeepingTask>(`/housekeeping/${_id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
 
-export const updateHousekeepingTaskStatus = (id: number, status: string) =>
-  roomServiceHttp<HousekeepingTask>(`/housekeeping/${id}/status`, {
+export const updateHousekeepingTaskStatus = (_id: string, status: string) =>
+  roomServiceHttp<HousekeepingTask>(`/housekeeping/${_id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
 
-export const deleteHousekeepingTask = (id: number) =>
-  roomServiceHttp<void>(`/housekeeping/${id}`, { method: 'DELETE' });
+export const deleteHousekeepingTask = (_id: string) =>
+  roomServiceHttp<void>(`/housekeeping/${_id}`, { method: 'DELETE' });
 
 // ── Maintenance ────────────────────────────────────────────────────────────
 
@@ -104,20 +103,20 @@ export const createMaintenanceTicket = (payload: Partial<MaintenanceTicket>) =>
     body: JSON.stringify(payload),
   });
 
-export const updateMaintenanceTicket = (id: number, payload: Partial<MaintenanceTicket>) =>
-  roomServiceHttp<MaintenanceTicket>(`/maintenance/${id}`, {
+export const updateMaintenanceTicket = (_id: string, payload: Partial<MaintenanceTicket>) =>
+  roomServiceHttp<MaintenanceTicket>(`/maintenance/${_id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
 
-export const updateMaintenanceTicketStatus = (id: number, status: string) =>
-  roomServiceHttp<MaintenanceTicket>(`/maintenance/${id}/status`, {
+export const updateMaintenanceTicketStatus = (_id: string, status: string) =>
+  roomServiceHttp<MaintenanceTicket>(`/maintenance/${_id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
 
-export const deleteMaintenanceTicket = (id: number) =>
-  roomServiceHttp<void>(`/maintenance/${id}`, { method: 'DELETE' });
+export const deleteMaintenanceTicket = (_id: string) =>
+  roomServiceHttp<void>(`/maintenance/${_id}`, { method: 'DELETE' });
 
 // ── Staff & Rooms ──────────────────────────────────────────────────────────
 

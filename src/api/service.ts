@@ -37,11 +37,12 @@ export interface StaffMember {
 }
 export interface StaffListResponse { content: StaffMember[]; total: number; totalPages: number; }
 
-export const getStaff = async (params?: { name?: string; page?: number; size?: number }): Promise<StaffListResponse> => {
+export const getStaff = async (params?: { name?: string; page?: number; size?: number; role?: string }): Promise<StaffListResponse> => {
   const q = new URLSearchParams();
   if (params?.name) q.set('name', params.name);
   if (params?.page !== undefined) q.set('page', String(params.page));
   if (params?.size !== undefined) q.set('size', String(params.size));
+  if (params?.role) q.set('role', params.role);
   const { data } = await http<StaffListResponse>(`/staff?${q.toString()}`); return data;
 };
 export const getStaffById = async (id: string): Promise<StaffMember> => {
@@ -137,7 +138,7 @@ export const approveRoomBookingCancellation = async (id: string): Promise<void> 
 // ─── Table Reservations ───────────────────────────────────────────────────────
 
 export interface TableReservation {
-  id: number; customerName?: string; customerEmail?: string;
+  _id: string; name?: string; email?: string; phone?: string;
   reservationDate: string; guestCount: number; mealType: string;
   seatingPreference?: string; specialRequests?: string;
   status?: string; assignedTable?: string;
@@ -149,23 +150,23 @@ export const getReservations = async (): Promise<TableReservation[]> => {
 export const getMyReservations = async (): Promise<TableReservation[]> => {
   const { data } = await http<TableReservation[]>('/reservations/my'); return data;
 };
-export const createReservation = async (payload: Omit<TableReservation, 'id'>): Promise<TableReservation> => {
+export const createReservation = async (payload: Omit<TableReservation, '_id'>): Promise<TableReservation> => {
   const { data } = await http<TableReservation>('/reservations', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
-export const updateReservationStatus = async (id: number, status: string): Promise<void> => {
-  await http<void>(`/reservations/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const updateReservationStatus = async (_id: string, status: string): Promise<void> => {
+  await http<void>(`/reservations/${_id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 };
-export const assignReservationTable = async (id: number, assignedTable: string): Promise<void> => {
-  await http<void>(`/reservations/${id}/assign-table`, { method: 'PATCH', body: JSON.stringify({ assignedTable }) });
+export const assignReservationTable = async (_id: string, assignedTable: string): Promise<void> => {
+  await http<void>(`/reservations/${_id}/assign-table`, { method: 'PATCH', body: JSON.stringify({ assignedTable }) });
 };
-export const cancelReservation = async (id: number): Promise<void> => {
-  await http<void>(`/reservations/${id}/cancel`, { method: 'POST' });
+export const cancelReservation = async (_id: string): Promise<void> => {
+  await http<void>(`/reservations/${_id}/cancel`, { method: 'POST' });
 };
 
 // ─── Menu Items ───────────────────────────────────────────────────────────────
 
 export interface MenuItem {
-  id: number; name: string; cuisine: string; price: number;
+  _id: string; name: string; cuisine: string; price: number;
   description?: string; badge?: string; mealService?: string;
   available: boolean; imageUrl?: string;
 }
@@ -178,41 +179,41 @@ export const getMenuItems = async (params?: { search?: string; cuisine?: string 
   const path = qs.length > 0 ? `/menu-items?${qs}` : '/menu-items';
   const { data } = await http<MenuItem[]>(path); return data;
 };
-export const createMenuItem = async (payload: Omit<MenuItem, 'id'>): Promise<MenuItem> => {
+export const createMenuItem = async (payload: Omit<MenuItem, '_id'>): Promise<MenuItem> => {
   const { data } = await http<MenuItem>('/menu-items', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
-export const updateMenuItem = async (id: number, payload: Partial<MenuItem>): Promise<MenuItem> => {
-  const { data } = await http<MenuItem>(`/menu-items/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
+export const updateMenuItem = async (_id: string, payload: Partial<MenuItem>): Promise<MenuItem> => {
+  const { data } = await http<MenuItem>(`/menu-items/${_id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
 };
-export const deleteMenuItem = async (id: number): Promise<void> => {
-  await http<void>(`/menu-items/${id}`, { method: 'DELETE' });
+export const deleteMenuItem = async (_id: string): Promise<void> => {
+  await http<void>(`/menu-items/${_id}`, { method: 'DELETE' });
 };
-export const toggleMenuItemAvailability = async (id: number, available: boolean): Promise<void> => {
-  await http<void>(`/menu-items/${id}/availability?available=${available}`, { method: 'PATCH' });
+export const toggleMenuItemAvailability = async (_id: string, available: boolean): Promise<void> => {
+  await http<void>(`/menu-items/${_id}/availability?available=${available}`, { method: 'PATCH' });
 };
 
 // ─── Event Bookings ───────────────────────────────────────────────────────────
 
 export interface EventBooking {
-  id: number; customerName?: string; customerEmail?: string;
-  hallName: string; eventDateTime: string; endDateTime: string;
-  guestCount: number; packageName?: string; pricePerGuest?: number;
+  _id: string; customerName?: string; customerEmail?: string; customerMobile?: string;
+  eventType?: string; hallName: string; eventDateTime: string; endDateTime: string;
+  attendees: number; packageName?: string; pricePerGuest?: number;
   totalPrice?: number; status?: string; notes?: string;
 }
 
 export const getEventBookings = async (): Promise<EventBooking[]> => {
   const { data } = await http<EventBooking[]>('/event-bookings'); return data;
 };
-export const createEventBooking = async (payload: Omit<EventBooking, 'id'>): Promise<EventBooking> => {
+export const createEventBooking = async (payload: Omit<EventBooking, '_id'>): Promise<EventBooking> => {
   const { data } = await http<EventBooking>('/event-bookings', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
-export const updateEventBooking = async (id: number, payload: Partial<EventBooking>): Promise<EventBooking> => {
-  const { data } = await http<EventBooking>(`/event-bookings/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
+export const updateEventBooking = async (_id: string, payload: Partial<EventBooking>): Promise<EventBooking> => {
+  const { data } = await http<EventBooking>(`/event-bookings/${_id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
 };
-export const deleteEventBooking = async (id: number): Promise<void> => {
-  await http<void>(`/event-bookings/${id}`, { method: 'DELETE' });
+export const deleteEventBooking = async (_id: string): Promise<void> => {
+  await http<void>(`/event-bookings/${_id}`, { method: 'DELETE' });
 };
-export interface EventAnalytics { events: number; eventRevenue: number; popularTypes?: Record<string, number>; }
+export interface EventAnalytics { events: number; eventRevenue: number; popularTypes?: Record<string, number> | Array<{ type: string; count: number }>; }
 export const getEventAnalytics = async (): Promise<EventAnalytics> => {
   const { data } = await http<EventAnalytics>('/event-bookings/analytics'); return data;
 };

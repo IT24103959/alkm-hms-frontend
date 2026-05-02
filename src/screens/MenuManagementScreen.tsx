@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -30,9 +31,9 @@ import { Spacing } from '@/constants/theme';
 const CUISINES = ['WESTERN', 'THAI_CHINESE', 'SRI_LANKAN', 'INDIAN', 'ITALIAN'];
 const MEAL_SERVICES = ['BREAKFAST', 'LUNCH', 'DINNER', 'ALL_DAY'];
 
-const BLANK_FORM: Omit<MenuItem, 'id'> = {
+const BLANK_FORM: Omit<MenuItem, '_id'> = {
   name: '', cuisine: 'WESTERN', price: 0,
-  description: '', badge: '', mealService: 'LUNCH', available: true,
+  description: '', badge: '', mealService: 'LUNCH', available: true, imageUrl: '',
 };
 
 const errMsg = (err: unknown) => {
@@ -51,7 +52,7 @@ function ItemFormModal({
   theme: ReturnType<typeof useTheme>; 
   onClose: () => void; onSaved: () => void;
 }>) {
-  const [form, setForm] = useState<Omit<MenuItem, 'id'>>(BLANK_FORM);
+  const [form, setForm] = useState<Omit<MenuItem, '_id'>>(BLANK_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -64,6 +65,7 @@ function ItemFormModal({
         name: editing.name, cuisine: editing.cuisine, price: editing.price,
         description: editing.description ?? '', badge: editing.badge ?? '',
         mealService: editing.mealService ?? 'LUNCH', available: editing.available,
+        imageUrl: editing.imageUrl ?? '',
       });
     }
     setError('');
@@ -86,7 +88,7 @@ function ItemFormModal({
       if (editing === null) {
         await createMenuItem({ ...form, price: Number(form.price) });
       } else {
-        await updateMenuItem(editing.id, { ...form, price: Number(form.price) });
+        await updateMenuItem(editing._id, { ...form, price: Number(form.price) });
       }
       onClose();
       onSaved();
@@ -120,6 +122,12 @@ function ItemFormModal({
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Meal Service</Text>
             <ChipRow options={MEAL_SERVICES} value={form.mealService ?? 'LUNCH'} onChange={set('mealService')} theme={theme} />
+
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Image URL (optional)</Text>
+            <TextInput style={inputStyle} value={form.imageUrl ?? ''} onChangeText={set('imageUrl')} placeholder="https://example.com/image.jpg" placeholderTextColor={theme.textSecondary} autoCapitalize="none" keyboardType="url" />
+            {form.imageUrl ? (
+              <Image source={{ uri: form.imageUrl }} style={styles.imagePreview} resizeMode="cover" />
+            ) : null}
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -197,7 +205,7 @@ export default function MenuManagementScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
-          try { await deleteMenuItem(item.id); load(); }
+          try { await deleteMenuItem(item._id); load(); }
           catch (err) { Alert.alert('Error', errMsg(err)); }
         },
       },
@@ -205,7 +213,7 @@ export default function MenuManagementScreen() {
   };
 
   const handleToggle = async (item: MenuItem) => {
-    try { await toggleMenuItemAvailability(item.id, !item.available); load(); }
+    try { await toggleMenuItemAvailability(item._id, !item.available); load(); }
     catch (err) { Alert.alert('Error', errMsg(err)); }
   };
 
@@ -256,11 +264,14 @@ export default function MenuManagementScreen() {
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => item._id ?? `menu-${index}`}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => (
             <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              {item.imageUrl ? (
+                <Image source={{ uri: item.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+              ) : null}
               <View style={styles.cardTop}>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[styles.cardName, { color: theme.text }]}>{item.name}</Text>
@@ -350,6 +361,8 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
+  imagePreview: { width: '100%', height: 160, borderRadius: 8, marginTop: 4 },
+  cardImage: { width: '100%', height: 140, borderRadius: 8, marginBottom: 6 },
   errorText: { color: '#ef4444', fontSize: 13, backgroundColor: '#ef444420', padding: 10, borderRadius: 8 },
   submitBtn: { backgroundColor: '#f4d28f', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 8 },
   submitBtnText: { color: '#1e293b', fontSize: 16, fontWeight: '700' },

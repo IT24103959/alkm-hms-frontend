@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import DateTimePickerField from '@/components/DateTimePickerField';
+
 import {
   createEventBooking,
   deleteEventBooking,
@@ -28,21 +30,22 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
-const HALLS = ['Grand Ballroom', 'Conference Hall', 'Garden Pavilion', 'Skyline Suite', 'Banquet Hall'];
+const HALLS = ['GRAND BALLROOM', 'GARDEN PAVILION', 'CONFERENCE ROOM', 'MINI HALL'];
 const PACKAGES = ['Standard', 'Premium'];
-const STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
+const STATUSES = ['INQUIRY', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: '#f59e0b',
+  INQUIRY: '#f59e0b',
   CONFIRMED: '#10b981',
   CANCELLED: '#ef4444',
   COMPLETED: '#3b82f6',
 };
 
-const BLANK: Omit<EventBooking, 'id'> = {
-  customerName: '', customerEmail: '', hallName: 'Grand Ballroom',
-  eventDateTime: '', endDateTime: '', guestCount: 50,
-  packageName: 'Standard', pricePerGuest: 0, status: 'PENDING', notes: '',
+const BLANK: Omit<EventBooking, '_id'> = {
+  customerName: '', customerEmail: '', customerMobile: '',
+  eventType: '', hallName: 'GRAND BALLROOM',
+  eventDateTime: '', endDateTime: '', attendees: 50,
+  packageName: 'Standard', pricePerGuest: 0, status: 'INQUIRY', notes: '',
 };
 
 const errMsg = (err: unknown) => {
@@ -65,7 +68,7 @@ function EventFormModal({
   theme: ReturnType<typeof useTheme>; 
   onClose: () => void; onSaved: () => void;
 }>) {
-  const [form, setForm] = useState<Omit<EventBooking, 'id'>>(BLANK);
+  const [form, setForm] = useState<Omit<EventBooking, '_id'>>(BLANK);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -77,10 +80,12 @@ function EventFormModal({
       setForm({
         customerName: editing.customerName ?? '',
         customerEmail: editing.customerEmail ?? '',
+        customerMobile: editing.customerMobile ?? '',
+        eventType: editing.eventType ?? '',
         hallName: editing.hallName,
         eventDateTime: editing.eventDateTime?.slice(0, 16) ?? '',
         endDateTime: editing.endDateTime?.slice(0, 16) ?? '',
-        guestCount: editing.guestCount,
+        attendees: editing.attendees,
         packageName: editing.packageName ?? 'Standard',
         pricePerGuest: editing.pricePerGuest ?? 0,
         status: editing.status ?? 'PENDING',
@@ -106,11 +111,11 @@ function EventFormModal({
     setError('');
     setSubmitting(true);
     try {
-      const payload = { ...form, guestCount: Number(form.guestCount), pricePerGuest: Number(form.pricePerGuest) };
+      const payload = { ...form, attendees: Number(form.attendees), pricePerGuest: Number(form.pricePerGuest) };
       if (editing === null) {
         await createEventBooking(payload);
       } else {
-        await updateEventBooking(editing.id, payload);
+        await updateEventBooking(editing._id, { ...payload, _id: editing._id });
       }
       onClose();
       onSaved();
@@ -133,24 +138,38 @@ function EventFormModal({
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Customer Email</Text>
             <TextInput style={inputStyle} value={form.customerEmail} onChangeText={set('customerEmail')} placeholder="email@example.com" placeholderTextColor={theme.textSecondary} keyboardType="email-address" />
 
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Customer Mobile</Text>
+            <TextInput style={inputStyle} value={form.customerMobile ?? ''} onChangeText={set('customerMobile')} placeholder="0771234567" placeholderTextColor={theme.textSecondary} keyboardType="phone-pad" />
+
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Event Type</Text>
+            <TextInput style={inputStyle} value={form.eventType ?? ''} onChangeText={set('eventType')} placeholder="e.g. Wedding, Conference, Birthday" placeholderTextColor={theme.textSecondary} />
+
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Hall</Text>
             <ChipRow options={HALLS} value={form.hallName} onChange={set('hallName')} theme={theme} />
 
             <View style={styles.rowFields}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Event Start (YYYY-MM-DDTHH:MM)</Text>
-                <TextInput style={inputStyle} value={form.eventDateTime} onChangeText={set('eventDateTime')} placeholder="2024-12-25T18:00" placeholderTextColor={theme.textSecondary} />
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Event Start</Text>
+                <DateTimePickerField
+                  value={form.eventDateTime}
+                  onChange={set('eventDateTime')}
+                  mode="datetime"
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Event End</Text>
-                <TextInput style={inputStyle} value={form.endDateTime} onChangeText={set('endDateTime')} placeholder="2024-12-25T22:00" placeholderTextColor={theme.textSecondary} />
+                <DateTimePickerField
+                  value={form.endDateTime}
+                  onChange={set('endDateTime')}
+                  mode="datetime"
+                />
               </View>
             </View>
 
             <View style={styles.rowFields}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Guests</Text>
-                <TextInput style={inputStyle} value={String(form.guestCount)} onChangeText={(v) => setForm((f) => ({ ...f, guestCount: Number(v) || 0 }))} keyboardType="numeric" />
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Attendees</Text>
+                <TextInput style={inputStyle} value={String(form.attendees)} onChangeText={(v) => setForm((f) => ({ ...f, attendees: Number(v) || 0 }))} keyboardType="numeric" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Price/Guest (Rs.)</Text>
@@ -162,7 +181,7 @@ function EventFormModal({
             <ChipRow options={PACKAGES} value={form.packageName ?? 'Standard'} onChange={set('packageName')} theme={theme} />
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Status</Text>
-            <ChipRow options={STATUSES} value={form.status ?? 'PENDING'} onChange={set('status')} theme={theme} />
+            <ChipRow options={STATUSES} value={form.status ?? 'INQUIRY'} onChange={set('status')} theme={theme} />
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Notes (optional)</Text>
             <TextInput style={[...inputStyle, styles.textarea]} value={form.notes} onChangeText={set('notes')} multiline numberOfLines={3} placeholder="Special requirements..." placeholderTextColor={theme.textSecondary} />
@@ -233,7 +252,7 @@ export default function EventManagementScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
-          try { await deleteEventBooking(b.id); load(); }
+          try { await deleteEventBooking(b._id); load(); }
           catch (err) { Alert.alert('Error', errMsg(err)); }
         },
       },
@@ -271,12 +290,6 @@ export default function EventManagementScreen() {
               <Text style={[styles.analyticsVal, { color: theme.accent }]}>Rs. {(analytics?.eventRevenue ?? 0).toLocaleString()}</Text>
               <Text style={[styles.analyticsKey, { color: theme.textSecondary }]}>REVENUE</Text>
             </View>
-            {analytics?.popularTypes != null && Object.entries(analytics.popularTypes).map(([k, v]) => (
-              <View key={k} style={[styles.analyticsChip, { flex: 1 }]}>
-                <Text style={[styles.analyticsVal, { color: theme.accent }]}>{v}</Text>
-                <Text style={[styles.analyticsKey, { color: theme.textSecondary }]}>{k.replaceAll('_', ' ')}</Text>
-              </View>
-            ))}
           </View>
         </View>
 
@@ -304,7 +317,7 @@ export default function EventManagementScreen() {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item) => item._id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => {
@@ -315,17 +328,19 @@ export default function EventManagementScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.cardCustomer, { color: theme.text }]}>{item.customerName}</Text>
                     <Text style={[styles.cardEmail, { color: theme.textSecondary }]}>{item.customerEmail}</Text>
+                    {item.customerMobile ? <Text style={[styles.cardEmail, { color: theme.textSecondary }]}>📞 {item.customerMobile}</Text> : null}
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: color + '22', borderColor: color + '55' }]}>
                     <Text style={[styles.statusBadgeText, { color }]}>{item.status}</Text>
                   </View>
                 </View>
+                {item.eventType ? <Text style={[styles.cardHall, { color: theme.textSecondary }]}>🎉 {item.eventType}</Text> : null}
                 <Text style={[styles.cardHall, { color: theme.text }]}>🏛 {item.hallName}</Text>
                 <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
                   {fmtDate(item.eventDateTime)} → {fmtDate(item.endDateTime)}
                 </Text>
                 <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                  👥 {item.guestCount} guests · {item.packageName} Package
+                  👥 {item.attendees} guests · {item.packageName} Package
                 </Text>
                 {item.totalPrice ? (
                   <Text style={[styles.cardPrice, { color: theme.accent }]}>Rs. {Number(item.totalPrice).toLocaleString()}</Text>

@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import DateTimePickerField from '@/components/DateTimePickerField';
+
 import {
   approveRoomBookingCancellation,
   createRoomBooking,
@@ -236,12 +238,20 @@ function BookingFormModal({
           <TextInput style={inputStyle} value={form.roomNumber} onChangeText={set('roomNumber')} placeholder="e.g. 101" placeholderTextColor={theme.textSecondary} />
           <View style={styles.rowFields}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Check-In (YYYY-MM-DD)</Text>
-              <TextInput style={inputStyle} value={form.checkInDate} onChangeText={set('checkInDate')} placeholder="2024-12-01" placeholderTextColor={theme.textSecondary} />
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Check-In</Text>
+              <DateTimePickerField
+                value={form.checkInDate}
+                onChange={set('checkInDate')}
+                mode="date"
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Check-Out</Text>
-              <TextInput style={inputStyle} value={form.checkOutDate} onChangeText={set('checkOutDate')} placeholder="2024-12-05" placeholderTextColor={theme.textSecondary} />
+              <DateTimePickerField
+                value={form.checkOutDate}
+                onChange={set('checkOutDate')}
+                mode="date"
+              />
             </View>
           </View>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
