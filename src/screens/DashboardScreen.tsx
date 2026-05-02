@@ -112,12 +112,6 @@ export default function DashboardScreen() {
 
         {/* Hotel Brief */}
         <View style={[styles.hotelBrief, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-          <Image
-            source={require('../../assets/alkm-logo.png')}
-            style={styles.hotelLogo}
-            resizeMode="contain"
-          />
-          <Text style={[styles.hotelName, { color: theme.text }]}>ALKM Hotel</Text>
           <Text style={[styles.hotelTagline, { color: theme.primary }]}>Where Comfort Meets Excellence</Text>
           <Text style={[styles.hotelDesc, { color: theme.textSecondary }]}>
             Welcome to ALKM Hotel — a premium hospitality destination offering world-class rooms, fine dining, curated events, and seamless service. This management app gives your team full control over operations across every department.
@@ -217,7 +211,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   heroImage: { width: '100%', height: 220 },
   hotelBrief: { padding: Spacing.four, borderBottomWidth: 1, gap: 6, alignItems: 'center' },
-  hotelLogo: { width: 100, height: 100, marginBottom: 4 },
+  hotelLogo: { width: 50, height: 50, marginBottom: 4 },
   hotelName: { fontSize: 26, fontWeight: '800' },
   hotelTagline: { fontSize: 14, fontWeight: '600', letterSpacing: 0.5 },
   hotelDesc: { fontSize: 13, lineHeight: 20 },

@@ -7,6 +7,7 @@ import {
   type TabTriggerSlotProps,
   type TabListProps,
 } from 'expo-router/ui';
+import { Image } from 'expo-image';
 import React, { createContext, useCallback, useContext, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -121,7 +122,14 @@ export function CustomTabList(props: TabListProps) {
           pointerEvents="auto"
           style={[styles.topBar, { backgroundColor: C.card, borderBottomColor: C.border }]}
         >
-          <Text style={[styles.brand, { color: C.primary }]}>🏨 Alakamanda HMS</Text>
+          <View style={styles.brand}>
+            <Image
+              source={require('../../assets/alkm-logo.png')}
+              style={styles.brandLogo}
+              contentFit="contain"
+            />
+            <Text style={[styles.brandText, { color: C.primary }]}> ALAKAMANDA</Text>
+          </View>
 
           <View style={styles.topBarRight}>
             {(user?.fullName || user?.username) ? (
@@ -158,7 +166,13 @@ export function CustomTabList(props: TabListProps) {
           >
             {/* Drawer header */}
             <View style={[styles.drawerHeader, { borderBottomColor: C.border }]}>
-              <Text style={[styles.drawerBrand, { color: C.primary }]}>🏨 Alakamanda HMS</Text>
+              <View style={styles.drawerBrandRow}>
+                <Image
+                  source={require('../../assets/alkm-logo.png')}
+                  style={styles.drawerBrandLogo}
+                  contentFit="contain"
+                />
+              </View>
               <Pressable
                 onPress={() => setIsOpen(false)}
                 style={({ pressed }) => [
@@ -248,9 +262,19 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  brandText: {
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  brandLogo: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
   },
   topBarRight: {
     flexDirection: 'row',
@@ -308,10 +332,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
   },
+  drawerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  drawerBrandLogo: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+  },
   drawerBrand: {
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
   closeBtn: {
     width: 28,
