@@ -120,7 +120,7 @@ export function CustomTabList(props: TabListProps) {
           pointerEvents="auto"
           style={[styles.topBar, { backgroundColor: C.card, borderBottomColor: C.border }]}
         >
-          <Text style={[styles.brand, { color: C.primary }]}>🏨 ALKM HMS</Text>
+          <Text style={[styles.brand, { color: C.primary }]}>🏨 Alakamanda HMS</Text>
 
           <View style={styles.topBarRight}>
             {(user?.fullName || user?.username) ? (
@@ -157,7 +157,7 @@ export function CustomTabList(props: TabListProps) {
           >
             {/* Drawer header */}
             <View style={[styles.drawerHeader, { borderBottomColor: C.border }]}>
-              <Text style={[styles.drawerBrand, { color: C.primary }]}>🏨 ALKM HMS</Text>
+              <Text style={[styles.drawerBrand, { color: C.primary }]}>🏨 Alakamanda HMS</Text>
               <Pressable
                 onPress={() => setIsOpen(false)}
                 style={({ pressed }) => [
