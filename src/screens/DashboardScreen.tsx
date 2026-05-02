@@ -43,6 +43,7 @@ interface ModuleNav { key: string; label: string; description: string; route: st
 
 const ALL_MODULES: ModuleNav[] = [
   { key: 'rooms', label: 'Room Management', description: 'Manage rooms & bookings', route: '/rooms', color: '#10b981', roles: ['SUPER_ADMIN', 'MANAGER'] },
+  { key: 'staff', label: 'Staff Management', description: 'Add, edit & manage staff', route: '/staff', color: '#8b5cf6', roles: ['SUPER_ADMIN', 'MANAGER'] },
   { key: 'payroll', label: 'Payroll', description: 'Staff salary & payroll records', route: '/payroll', color: '#3b82f6', roles: ['SUPER_ADMIN', 'MANAGER', 'STAFF_MEMBER'] },
   { key: 'menu', label: 'Menu Management', description: 'Add & edit menu items', route: '/menu', color: '#ec4899', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER'] },
   { key: 'dining', label: 'Restaurant & Dining', description: 'View menu & reserve a table', route: '/dining', color: '#f97316', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER', 'CUSTOMER'] },

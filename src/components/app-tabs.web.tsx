@@ -25,6 +25,7 @@ const ALL_TABS: TabConfig[] = [
   { name: 'housekeeping',  href: '/housekeeping',  label: 'Housekeeping', icon: '🛏️' },
   { name: 'maintenance',   href: '/maintenance',   label: 'Maintenance',  icon: '🔧' },
   { name: 'rooms',         href: '/rooms',         label: 'Rooms',        icon: '🏨' },
+  { name: 'staff',         href: '/staff',         label: 'Staff',        icon: '👥' },
   { name: 'payroll',       href: '/payroll',       label: 'Payroll',      icon: '💰' },
   { name: 'menu',          href: '/menu',          label: 'Menu',         icon: '🍽️' },
   { name: 'dining',        href: '/dining',        label: 'Dining',       icon: '🍴' },
@@ -32,8 +33,8 @@ const ALL_TABS: TabConfig[] = [
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
-  SUPER_ADMIN:        ['home', 'rooms', 'payroll', 'housekeeping', 'maintenance', 'menu', 'dining', 'events'],
-  MANAGER:            ['home', 'rooms', 'payroll', 'housekeeping', 'maintenance', 'menu', 'dining', 'events'],
+  SUPER_ADMIN:        ['home', 'rooms', 'staff', 'payroll', 'housekeeping', 'maintenance', 'menu', 'dining', 'events'],
+  MANAGER:            ['home', 'rooms', 'staff', 'payroll', 'housekeeping', 'maintenance', 'menu', 'dining', 'events'],
   HOUSEKEEPER:        ['home', 'housekeeping'],
   MAINTENANCE_STAFF:  ['home', 'maintenance'],
   STAFF_MEMBER:       ['home', 'payroll'],
