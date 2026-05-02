@@ -478,6 +478,15 @@ export default function HousekeepingScreen() {
                 />
                 <StatItem label="Completed" value={stats?.completedTasks ?? 0} color="#10b981" />
             </View>
+            <View style={styles.statsGridRow}>
+              <StatItem label="Overdue" value={stats?.overdueTasks ?? 0} color="#f97316" />
+              <View style={[styles.statItem, { borderLeftColor: '#64748b' }]}>
+                <Text style={[styles.statValue, { color: '#64748b' }]}>
+                  {stats?.avgCompletionTimeHours ?? '0.00'}h
+                </Text>
+                <Text style={styles.statLabel}>Avg Completion</Text>
+              </View>
+            </View>
           </View>
         </View>
 
