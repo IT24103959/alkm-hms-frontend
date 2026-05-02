@@ -1,5 +1,5 @@
 {
-  "name": "alkm-hms-mobile",
+  "name": "alkm-hms",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
