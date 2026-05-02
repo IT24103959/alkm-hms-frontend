@@ -64,8 +64,8 @@ export default function LoginScreen() {
                 <View style={styles.iconBadge}>
                   <Text style={styles.iconLetter}>H</Text>
                 </View>
-                <Text style={styles.title}>ALKM Hotel</Text>
-                <Text style={styles.subtitle}>MANAGEMENT SYSTEM</Text>
+                <Text style={styles.title}>ALAKAMANDA</Text>
+                <Text style={styles.subtitle}>HOTEL MANAGEMENT SYSTEM</Text>
                 <Text style={styles.tagline}>Sign in to your account</Text>
               </View>
 

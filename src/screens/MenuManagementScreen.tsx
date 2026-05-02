@@ -1,3 +1,4 @@
+import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -54,7 +55,47 @@ function ItemFormModal({
 }>) {
   const [form, setForm] = useState<Omit<MenuItem, '_id'>>(BLANK_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  const CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const UPLOAD_PRESET = 'hms_menu_items';
+
+  const pickAndUpload = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Please allow photo library access to upload images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    setUploading(true);
+    try {
+      const asset = result.assets[0];
+      const formData = new FormData();
+      formData.append('file', { uri: asset.uri, type: 'image/jpeg', name: 'menu-item.jpg' } as any);
+      formData.append('upload_preset', UPLOAD_PRESET);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST', body: formData,
+      });
+      const data = await res.json();
+      if (data.secure_url) {
+        setForm((f) => ({ ...f, imageUrl: data.secure_url as string }));
+      } else {
+        Alert.alert('Upload failed', data.error?.message ?? 'Unknown error');
+      }
+    } catch (err) {
+      const e = err as { message?: string };
+      Alert.alert('Upload failed', e?.message ?? 'Network error');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (!visible) return;
@@ -123,10 +164,24 @@ function ItemFormModal({
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Meal Service</Text>
             <ChipRow options={MEAL_SERVICES} value={form.mealService ?? 'LUNCH'} onChange={set('mealService')} theme={theme} />
 
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Image URL (optional)</Text>
-            <TextInput style={inputStyle} value={form.imageUrl ?? ''} onChangeText={set('imageUrl')} placeholder="https://example.com/image.jpg" placeholderTextColor={theme.textSecondary} autoCapitalize="none" keyboardType="url" />
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Image (optional)</Text>
+<Pressable
+              onPress={pickAndUpload}
+              disabled={uploading}
+              style={[styles.imagePickerBtn, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+            >
+              {uploading && <ActivityIndicator color={theme.text} />}
+              {!uploading && form.imageUrl ? (
+                <Image source={{ uri: form.imageUrl }} style={styles.imagePreview} resizeMode="cover" />
+              ) : null}
+              {!uploading && !form.imageUrl ? (
+                <Text style={[styles.imagePickerText, { color: theme.textSecondary }]}>📷 Tap to select image</Text>
+              ) : null}
+            </Pressable>
             {form.imageUrl ? (
-              <Image source={{ uri: form.imageUrl }} style={styles.imagePreview} resizeMode="cover" />
+              <Pressable onPress={() => setForm((f) => ({ ...f, imageUrl: '' }))}>
+                <Text style={[styles.removeImageText, { color: '#ef4444' }]}>Remove image</Text>
+              </Pressable>
             ) : null}
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -361,7 +416,10 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
-  imagePreview: { width: '100%', height: 160, borderRadius: 8, marginTop: 4 },
+  imagePickerBtn: { borderWidth: 1, borderRadius: 8, borderStyle: 'dashed', height: 160, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  imagePickerText: { fontSize: 14 },
+  removeImageText: { fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 4 },
+  imagePreview: { width: '100%', height: 160, borderRadius: 8 },
   cardImage: { width: '100%', height: 140, borderRadius: 8, marginBottom: 6 },
   errorText: { color: '#ef4444', fontSize: 13, backgroundColor: '#ef444420', padding: 10, borderRadius: 8 },
   submitBtn: { backgroundColor: '#f4d28f', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 8 },
