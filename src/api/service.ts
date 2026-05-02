@@ -1,5 +1,18 @@
 import http from './http';
 
+// ─── Dashboard ───────────────────────────────────────────────────────────────
+
+export interface DashboardSummary {
+  totalStaff: number; totalSalaryPaid: number; totalPayrollRecords: number;
+  totalRooms: number; roomBookings: number;
+  totalRoomsChangePercent: number; roomBookingsChangePercent: number;
+  mostBookedRooms: Array<{ bookings: number; roomNumber: string }>;
+  leastBookedRooms: Array<{ bookings: number; roomNumber: string }>;
+}
+export const getDashboardSummary = async (): Promise<DashboardSummary> => {
+  const { data } = await http<DashboardSummary>('/dashboard/summary'); return data;
+};
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export interface LoginPayload { username: string; password: string; }
