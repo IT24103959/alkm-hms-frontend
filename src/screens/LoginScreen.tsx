@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,7 +20,7 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -61,9 +62,11 @@ export default function LoginScreen() {
             <View style={styles.card}>
               {/* Header */}
               <View style={styles.header}>
-                <View style={styles.iconBadge}>
-                  <Text style={styles.iconLetter}>H</Text>
-                </View>
+                <Image
+                  source={require('../../assets/alkm-logo.png')}
+                  style={styles.logoImage}
+                  contentFit="contain"
+                />
                 <Text style={styles.title}>ALAKAMANDA</Text>
                 <Text style={styles.subtitle}>HOTEL MANAGEMENT SYSTEM</Text>
                 <Text style={styles.tagline}>Sign in to your account</Text>
@@ -99,12 +102,7 @@ export default function LoginScreen() {
                       returnKeyType="done"
                       onSubmitEditing={handleLogin}
                     />
-                    <Pressable
-                      style={styles.eyeButton}
-                      onPress={() => setShowPassword((v) => !v)}
-                      accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
-                      <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
-                    </Pressable>
+                   
                   </View>
                 </View>
 
@@ -181,24 +179,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  iconBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f4d28f',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-    shadowColor: '#f4d28f',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  iconLetter: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: '#1e293b',
+  logoImage: {
+    width: 50,
+    height: 50,
+    marginTop:12,
+    marginBottom: 8,
+    borderRadius: 12,
   },
   title: {
     fontSize: 26,
@@ -245,9 +231,6 @@ const styles = StyleSheet.create({
   },
   passwordInput: {
     flex: 1,
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-    borderRightWidth: 0,
   },
   eyeButton: {
     backgroundColor: '#eef5fb',
