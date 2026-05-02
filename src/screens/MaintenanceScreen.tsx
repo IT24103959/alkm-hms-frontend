@@ -308,11 +308,11 @@ export default function MaintenanceScreen() {
             </View>
             <View style={styles.statsGridRow}>
               <StatItem label="Overdue" value={stats?.overdueTickets ?? 0} color="#f97316" />
-              <View style={[styles.statItem, { borderLeftColor: '#64748b' }]}>
+              <View style={[styles.statItem, { backgroundColor: '#64748b18', borderColor: '#64748b44', borderWidth: 1 }]}>
                 <Text style={[styles.statValue, { color: '#64748b' }]}>
                   {stats?.avgResolutionTimeHours ?? '0.00'}h
                 </Text>
-                <Text style={styles.statLabel}>Avg Resolution</Text>
+                <Text style={[styles.statLabel, { color: '#64748b' }]}>Avg Resolution</Text>
               </View>
             </View>
             {stats?.recurringIssues && stats.recurringIssues.length > 0 && (
@@ -707,10 +707,11 @@ function FormField({
 }
 
 function StatItem({ label, value, color }: Readonly<{ label: string; value: number; color: string }>) {
+  const theme = useTheme();
   return (
-    <View style={[styles.statItem, { borderLeftColor: color }]}>
+    <View style={[styles.statItem, { backgroundColor: `${color}18`, borderColor: `${color}44`, borderWidth: 1 }]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
     </View>
   );
 }
@@ -774,9 +775,9 @@ const styles = StyleSheet.create({
   recurringCount: { fontSize: 13, fontWeight: '700' },
   statItem: {
     flex: 1,
-    borderLeftWidth: 3,
-    paddingLeft: 8,
-    paddingVertical: 4,
+    borderRadius: 10,
+    padding: Spacing.two,
+    gap: 2,
   },
   statsRow: {
     flexDirection: 'row',
