@@ -16,16 +16,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import DateTimePickerField from '@/components/DateTimePickerField';
+
 import {
   createMaintenanceTicket,
   deleteMaintenanceTicket,
   getMaintenanceStats,
   getMaintenanceTickets,
+  getRooms,
   updateMaintenanceTicket,
   updateMaintenanceTicketStatus,
   type MaintenanceStats,
   type MaintenanceTicket,
-} from '@/api/roomService';
+  type Room,
+} from '@/api/service';
+import { getStaff, type StaffMember } from '@/api/service';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
@@ -57,7 +62,7 @@ const initialForm = {
   issueDescription: '',
   status: 'OPEN' as string,
   priority: 'MEDIUM' as string,
-  staffId: '',
+  staff: '',
   deadline: '',
   resolutionNotes: '',
   partsUsed: '',
@@ -141,10 +146,11 @@ function ChipGroup({
 export default function MaintenanceScreen() {
   const { user } = useAuth();
   const theme = useTheme();
-  const isDark = theme.background === '#000000';
 
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
   const [stats, setStats] = useState<MaintenanceStats | null>(null);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -157,12 +163,22 @@ export default function MaintenanceScreen() {
   const canManage = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role ?? '');
 
   const loadData = useCallback(async () => {
-    const [ticketsRes, statsRes] = await Promise.allSettled([
+    const [ticketsRes, statsRes, staffRes, roomsRes] = await Promise.allSettled([
       getMaintenanceTickets(),
       getMaintenanceStats(),
+      getStaff({ role: 'MAINTENANCE_STAFF', size: 200 }),
+      getRooms(),
     ]);
-    if (ticketsRes.status === 'fulfilled') setTickets(ticketsRes.value.data ?? []);
+    if (ticketsRes.status === 'fulfilled') {
+      const raw = ticketsRes.value.data;
+      setTickets(Array.isArray(raw) ? raw : ((raw as { content?: MaintenanceTicket[] }).content ?? []));
+    }
     if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+    if (staffRes.status === 'fulfilled') setStaff(staffRes.value.content ?? []);
+    if (roomsRes.status === 'fulfilled') {
+      const raw = roomsRes.value.data;
+      setRooms(Array.isArray(raw) ? raw : ((raw as { content?: Room[] }).content ?? []));
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -188,8 +204,6 @@ export default function MaintenanceScreen() {
 
   const openCreate = () => {
     setEditingTicket(null);
-    setForm(initialForm);
-    setFormError('');
     setModalVisible(true);
   };
 
@@ -209,7 +223,7 @@ export default function MaintenanceScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteMaintenanceTicket(ticket.id);
+              await deleteMaintenanceTicket(ticket._id);
               loadData();
             } catch (err) {
               Alert.alert('Error', getErrMsg(err, 'Unable to delete ticket.'));
@@ -230,7 +244,7 @@ export default function MaintenanceScreen() {
           text: formatLabel(s),
           onPress: async () => {
             try {
-              await updateMaintenanceTicketStatus(ticket.id, s);
+              await updateMaintenanceTicketStatus(ticket._id, s);
               loadData();
             } catch (err) {
               Alert.alert('Error', getErrMsg(err, 'Could not update status.'));
@@ -247,7 +261,6 @@ export default function MaintenanceScreen() {
       item={item}
       canManage={canManage}
       theme={theme}
-      isDark={isDark}
       onStatus={handleQuickStatus}
       onEdit={openEdit}
       onDelete={handleDelete}
@@ -260,7 +273,7 @@ export default function MaintenanceScreen() {
       <View
         style={[
           styles.pageHeader,
-          { borderBottomColor: isDark ? '#1f2937' : '#e5e7eb' },
+          { borderBottomColor: theme.border },
         ]}>
         <View>
           <Text style={[styles.pageEyebrow, { color: theme.textSecondary }]}>ROOM OPERATIONS</Text>
@@ -268,33 +281,60 @@ export default function MaintenanceScreen() {
         </View>
         {canManage && (
           <Pressable
-            style={({ pressed }) => [styles.newBtn, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.newBtn, { backgroundColor: theme.primary }, pressed && styles.pressed]}
             onPress={openCreate}>
             <Text style={styles.newBtnText}>+ New Ticket</Text>
           </Pressable>
         )}
       </View>
 
-      {/* Stats */}
-      {stats && (
-        <View style={styles.statsRow}>
-          <StatItem label="Total" value={stats.total} color="#8b5cf6" />
-          <StatItem label="Open" value={stats.open} color="#ef4444" />
-          <StatItem
-            label="In Progress"
-            value={tickets.filter((t) => t.status === 'IN_PROGRESS').length}
-            color="#3b82f6"
-          />
-          <StatItem label="Resolved" value={stats.resolved} color="#10b981" />
-        </View>
-      )}
+      {/* Stats + Filters panel */}
+      <View style={[styles.controlPanel, { borderBottomColor: theme.border }]}>
 
-      {/* Search + Filters */}
-      <View style={[styles.filterBar, { borderBottomColor: isDark ? '#1f2937' : '#e5e7eb' }]}>
+        <View style={[styles.statsBlock, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statsGridRow}>
+              <StatItem label="Total" value={stats?.totalTickets ?? 0} color="#8b5cf6" />
+              <StatItem label="Open" value={stats?.openTickets ?? 0} color="#ef4444" />
+            </View>
+            <View style={styles.statsGridRow}>
+              <StatItem
+                label="In Progress"
+                value={stats?.inProgressTickets ?? 0}
+                color="#3b82f6"
+              />
+              <StatItem label="Resolved" value={stats?.resolvedTickets ?? 0} color="#10b981" />
+            </View>
+            <View style={styles.statsGridRow}>
+              <StatItem label="Overdue" value={stats?.overdueTickets ?? 0} color="#f97316" />
+              <View style={[styles.statItem, { backgroundColor: '#64748b18', borderColor: '#64748b44', borderWidth: 1 }]}>
+                <Text style={[styles.statValue, { color: '#64748b' }]}>
+                  {stats?.avgResolutionTimeHours ?? '0.00'}h
+                </Text>
+                <Text style={[styles.statLabel, { color: '#64748b' }]}>Avg Resolution</Text>
+              </View>
+            </View>
+            {stats?.recurringIssues && stats.recurringIssues.length > 0 && (
+              <View style={[styles.recurringBlock, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+                <Text style={[styles.recurringTitle, { color: theme.textSecondary }]}>RECURRING ISSUES</Text>
+                {stats.recurringIssues.map((issue) => (
+                  <View key={issue._id} style={styles.recurringRow}>
+                    <Text style={[styles.recurringLabel, { color: theme.text }]}>{issue._id.replaceAll('_', ' ')}</Text>
+                    <Text style={[styles.recurringCount, { color: '#f97316' }]}>{issue.count}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Search + Filters */}
+        <View style={styles.filterSection}>
         <TextInput
           style={[
             styles.searchInput,
-            { color: theme.text, borderColor: isDark ? '#374151' : '#e5e7eb', backgroundColor: isDark ? '#111827' : '#f9fafb' },
+            { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement },
           ]}
           placeholder="Search room..."
           placeholderTextColor={theme.textSecondary}
@@ -309,7 +349,7 @@ export default function MaintenanceScreen() {
                 onPress={() => setStatusFilter(opt.value)}
                 style={[
                   styles.filterChip,
-                  { borderColor: isDark ? '#374151' : '#e5e7eb' },
+                  { borderColor: theme.border },
                   statusFilter === opt.value && { backgroundColor: theme.text, borderColor: theme.text },
                 ]}>
                 <Text
@@ -323,6 +363,7 @@ export default function MaintenanceScreen() {
             ),
           )}
         </ScrollView>
+        </View>
       </View>
 
       {loading ? (
@@ -330,7 +371,7 @@ export default function MaintenanceScreen() {
       ) : (
         <FlatList
           data={filteredTickets}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => item._id ?? `ticket-${index}`}
           renderItem={renderTicket}
           contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -343,8 +384,9 @@ export default function MaintenanceScreen() {
       <MaintenanceFormModal
         visible={modalVisible}
         editingTicket={editingTicket}
+        staff={staff}
+        rooms={rooms}
         theme={theme}
-        isDark={isDark}
         onClose={() => setModalVisible(false)}
         onSaved={loadData}
       />
@@ -356,7 +398,6 @@ function TicketCard({
   item,
   canManage,
   theme,
-  isDark,
   onStatus,
   onEdit,
   onDelete,
@@ -364,7 +405,6 @@ function TicketCard({
   item: MaintenanceTicket;
   canManage: boolean;
   theme: ReturnType<typeof useTheme>;
-  isDark: boolean;
   onStatus: (ticket: MaintenanceTicket) => void;
   onEdit: (ticket: MaintenanceTicket) => void;
   onDelete: (ticket: MaintenanceTicket) => void;
@@ -373,7 +413,7 @@ function TicketCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: isDark ? '#111827' : '#f9fafb', borderColor: isDark ? '#1f2937' : '#e5e7eb' },
+        { backgroundColor: theme.card, borderColor: theme.border },
       ]}>
       <View style={styles.cardHeader}>
         <Text style={[styles.cardRoom, { color: theme.text }]}>Room {item.roomNumber}</Text>
@@ -439,15 +479,17 @@ function TicketCard({
 function MaintenanceFormModal({
   visible,
   editingTicket,
+  staff,
+  rooms,
   theme,
-  isDark,
   onClose,
   onSaved,
 }: Readonly<{
   visible: boolean;
   editingTicket: MaintenanceTicket | null;
+  staff: StaffMember[];
+  rooms: Room[];
   theme: ReturnType<typeof useTheme>;
-  isDark: boolean;
   onClose: () => void;
   onSaved: () => void;
 }>) {
@@ -457,8 +499,8 @@ function MaintenanceFormModal({
 
   const inputStyle = [styles.input, {
     color: theme.text,
-    borderColor: isDark ? '#374151' : '#e5e7eb',
-    backgroundColor: isDark ? '#111827' : '#f9fafb',
+    borderColor: theme.border,
+    backgroundColor: theme.backgroundElement,
   }];
 
   useEffect(() => {
@@ -470,7 +512,7 @@ function MaintenanceFormModal({
         issueDescription: editingTicket.issueDescription ?? '',
         status: editingTicket.status ?? 'OPEN',
         priority: editingTicket.priority ?? 'MEDIUM',
-        staffId: editingTicket.staffId?.toString() ?? '',
+        staff: editingTicket.assignedStaff?._id ?? editingTicket.staff ?? '',
         deadline: editingTicket.deadline?.slice(0, 16) ?? '',
         resolutionNotes: editingTicket.resolutionNotes ?? '',
         partsUsed: editingTicket.partsUsed ?? '',
@@ -493,20 +535,26 @@ function MaintenanceFormModal({
     }
     setFormError('');
     setSubmitting(true);
-    const payload = {
+    const deadlineIso = form.deadline ? new Date(form.deadline).toISOString() : undefined;
+    const basePayload = {
       roomNumber: form.roomNumber.trim(),
       facilityType: form.facilityType,
       issueDescription: form.issueDescription.trim(),
-      status: form.status,
       priority: form.priority,
-      resolutionNotes: form.resolutionNotes || undefined,
-      partsUsed: form.partsUsed || undefined,
-      deadline: form.deadline || undefined,
-      staffId: form.staffId ? Number(form.staffId) : undefined,
+      deadline: deadlineIso,
+      staff: form.staff || undefined,
     };
+    const payload = editingTicket
+      ? {
+          ...basePayload,
+          status: form.status,
+          resolutionNotes: form.resolutionNotes || undefined,
+          partsUsed: form.partsUsed || undefined,
+        }
+      : basePayload;
     try {
       if (editingTicket) {
-        await updateMaintenanceTicket(editingTicket.id, payload);
+        await updateMaintenanceTicket(editingTicket._id, payload);
       } else {
         await createMaintenanceTicket(payload);
       }
@@ -523,7 +571,7 @@ function MaintenanceFormModal({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={[styles.modalSafeArea, { backgroundColor: theme.background }]}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#1f2937' : '#e5e7eb' }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>
               {editingTicket ? 'Edit Ticket' : 'New Maintenance Ticket'}
             </Text>
@@ -534,8 +582,13 @@ function MaintenanceFormModal({
 
           <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
             <FormField label="Room Number" theme={theme}>
-              <TextInput style={inputStyle} placeholder="e.g. 101" placeholderTextColor={theme.textSecondary}
-                value={form.roomNumber} onChangeText={setField('roomNumber')} />
+              <SelectField
+                options={rooms.map((r) => ({ label: r.roomNumber, value: r.roomNumber }))}
+                value={form.roomNumber}
+                onChange={setField('roomNumber')}
+                placeholder="No rooms loaded"
+                theme={theme}
+              />
             </FormField>
 
             <FormField label="Facility Type" theme={theme}>
@@ -556,14 +609,22 @@ function MaintenanceFormModal({
               <ChipGroup options={ALL_STATUSES} value={form.status} onChange={setField('status')} theme={theme} />
             </FormField>
 
-            <FormField label="Staff ID (optional)" theme={theme}>
-              <TextInput style={inputStyle} placeholder="Enter staff ID" placeholderTextColor={theme.textSecondary}
-                keyboardType="numeric" value={form.staffId} onChangeText={setField('staffId')} />
+            <FormField label="Staff Member (optional)" theme={theme}>
+              <SelectField
+                options={staff.map((s) => ({ label: s.name, subLabel: s.position, value: s._id }))}
+                value={form.staff}
+                onChange={setField('staff')}
+                placeholder="No maintenance staff loaded"
+                theme={theme}
+              />
             </FormField>
 
             <FormField label="Deadline (optional)" theme={theme}>
-              <TextInput style={inputStyle} placeholder="YYYY-MM-DDTHH:MM" placeholderTextColor={theme.textSecondary}
-                value={form.deadline} onChangeText={setField('deadline')} />
+              <DateTimePickerField
+                value={form.deadline}
+                onChange={setField('deadline')}
+                mode="datetime"
+              />
             </FormField>
 
             <FormField label="Resolution Notes (optional)" theme={theme}>
@@ -596,6 +657,38 @@ function MaintenanceFormModal({
   );
 }
 
+function SelectField({
+  options,
+  value,
+  onChange,
+  placeholder,
+  theme,
+}: Readonly<{
+  options: { label: string; subLabel?: string; value: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  theme: ReturnType<typeof useTheme>;
+}>) {
+  return (
+    <ScrollView
+      style={[styles.selectScroll, { borderColor: theme.border }]}
+      nestedScrollEnabled>
+      {options.length === 0 ? (
+        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>{placeholder}</Text>
+      ) : options.map((opt) => (
+        <Pressable
+          key={opt.value}
+          style={[styles.selectOption, value === opt.value && { backgroundColor: theme.primary + '22' }]}
+          onPress={() => onChange(opt.value)}>
+          <Text style={{ color: theme.text }}>{opt.label}</Text>
+          {opt.subLabel ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.subLabel}</Text> : null}
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
 function FormField({
   label,
   children,
@@ -614,10 +707,11 @@ function FormField({
 }
 
 function StatItem({ label, value, color }: Readonly<{ label: string; value: number; color: string }>) {
+  const theme = useTheme();
   return (
-    <View style={[styles.statItem, { borderLeftColor: color }]}>
+    <View style={[styles.statItem, { backgroundColor: `${color}18`, borderColor: `${color}44`, borderWidth: 1 }]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
     </View>
   );
 }
@@ -635,25 +729,65 @@ const styles = StyleSheet.create({
   pageEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
   pageTitle: { fontSize: 22, fontWeight: '700', marginTop: 2 },
   newBtn: {
-    backgroundColor: '#8b5cf6',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
   },
   newBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  controlPanel: {
+    borderBottomWidth: 1,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    gap: Spacing.two,
+  },
+  panelLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 2 },
+  statsBlock: {
+    borderBottomWidth: 1,
+    paddingBottom: Spacing.two,
+    gap: Spacing.two,
+  },
+  statsGrid: {
+    gap: Spacing.two,
+  },
+  statsGridRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  recurringBlock: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: Spacing.two,
+    gap: 4,
+  },
+  recurringTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  recurringRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  recurringLabel: { fontSize: 13, fontWeight: '500' },
+  recurringCount: { fontSize: 13, fontWeight: '700' },
+  statItem: {
+    flex: 1,
+    borderRadius: 10,
+    padding: Spacing.two,
+    gap: 2,
+  },
   statsRow: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
     gap: Spacing.two,
   },
-  statItem: {
-    flex: 1,
-    borderLeftWidth: 3,
-    paddingLeft: 8,
-  },
   statValue: { fontSize: 20, fontWeight: '700' },
   statLabel: { fontSize: 11, color: '#9ca3af' },
+  filterSection: { gap: Spacing.two },
   filterBar: {
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.two,
@@ -707,6 +841,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: { fontSize: 12, fontWeight: '500' },
+  selectScroll: { maxHeight: 160, borderWidth: 1, borderRadius: 8, marginBottom: 4 },
+  selectOption: { padding: 12, borderRadius: 6, gap: 2 },
+  selectEmpty: { padding: 12, fontSize: 13, textAlign: 'center' },
   pressed: { opacity: 0.7 },
   modalSafeArea: { flex: 1 },
   modalHeader: {
