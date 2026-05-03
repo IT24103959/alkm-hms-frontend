@@ -132,7 +132,7 @@ function RoomFormModal({
       );
       const data = await res.json();
       if (data.secure_url) {
-        setForm((f) => ({ ...f, imageUrl: data.secure_url as string }));
+        setForm((f) => ({ ...f, photoUrl: data.secure_url as string }));
       } else {
         Alert.alert("Upload failed", data.error?.message ?? "Unknown error");
       }
@@ -811,17 +811,19 @@ export default function RoomManagementScreen() {
       ) : null}
 
       {!loading && tab === "rooms" && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.filterBar, { borderBottomColor: '#e5e7eb' }]}>
-          {(['ALL', ...ROOM_STATUSES]).map((s) => (
-            <Pressable
-              key={s}
-              onPress={() => setRoomStatusFilter(s)}
-              style={[styles.filterChip, { borderColor: roomStatusFilter === s ? theme.primary : theme.border }, roomStatusFilter === s && { backgroundColor: theme.primary }]}
-            >
-              <Text style={[styles.filterChipText, { color: roomStatusFilter === s ? '#fff' : theme.textSecondary }]}>{s}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        <View style={[styles.filterBarWrapper, { borderBottomColor: '#e5e7eb' }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterBarContent}>
+            {(['ALL', ...ROOM_STATUSES]).map((s) => (
+              <Pressable
+                key={s}
+                onPress={() => setRoomStatusFilter(s)}
+                style={[styles.filterChip, { borderColor: roomStatusFilter === s ? theme.primary : theme.border }, roomStatusFilter === s && { backgroundColor: theme.primary }]}
+              >
+                <Text style={[styles.filterChipText, { color: roomStatusFilter === s ? '#fff' : theme.textSecondary }]}>{s}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {!loading && tab === "rooms" && (
@@ -861,7 +863,7 @@ export default function RoomManagementScreen() {
                   {item.roomType} · Cap: {item.capacity}
                 </Text>
                 <Text style={[styles.cardMeta, { color: '#10b981', fontWeight: '600' }]}>
-                  {item.remainingRooms ?? 0}/{item.totalRooms ?? 0} available
+                  Rooms: {item.totalRooms ?? 0}
                 </Text>
               </View>
               {item.roomDescription ? (
@@ -1031,7 +1033,8 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 20, fontWeight: "700" },
   statLabel: { fontSize: 11, color: "#9ca3af" },
-  filterBar: { height: 46, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two, borderBottomWidth: 1, flexGrow: 0 },
+  filterBarWrapper: { height: 46, borderBottomWidth: 1, flexShrink: 0 },
+  filterBarContent: { paddingHorizontal: Spacing.four, alignItems: 'center', gap: 6 },
   filterChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginRight: 6 },
   filterChipText: { fontSize: 12, fontWeight: '500' },
   roomPickerChip: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, marginRight: 8, minWidth: 90, alignItems: 'center', gap: 2 },
