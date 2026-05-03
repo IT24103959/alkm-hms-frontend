@@ -347,11 +347,6 @@ export default function MenuManagementScreen() {
               </View>
               {item.description ? <Text style={[styles.cardDesc, { color: theme.textSecondary }]} numberOfLines={2}>{item.description}</Text> : null}
               <View style={styles.cardActions}>
-                <Pressable style={[styles.actionBtn, { backgroundColor: item.available ? '#9ca3af22' : '#10b98122' }]} onPress={() => handleToggle(item)}>
-                  <Text style={[styles.actionText, { color: item.available ? '#9ca3af' : '#10b981' }]}>
-                    {item.available ? 'Disable' : 'Enable'}
-                  </Text>
-                </Pressable>
                 <Pressable style={[styles.actionBtn, { backgroundColor: '#f59e0b22' }]} onPress={() => openEdit(item)}>
                   <Text style={[styles.actionText, { color: '#f59e0b' }]}>Edit</Text>
                 </Pressable>
