@@ -31,7 +31,10 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
 const HALLS = ['GRAND BALLROOM', 'GARDEN PAVILION', 'CONFERENCE ROOM', 'MINI HALL'];
-const PACKAGES = ['Standard', 'Premium(+rs.10,000)'];
+const PACKAGE_OPTIONS = [
+  { value: 'Standard', label: 'Standard' },
+  { value: 'Premium', label: 'Premium (+Rs. 10,000)' },
+];
 const STATUSES = ['INQUIRY', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -178,7 +181,7 @@ function EventFormModal({
             </View>
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Package</Text>
-            <ChipRow options={PACKAGES} value={form.packageName ?? 'Standard'} onChange={set('packageName')} theme={theme} />
+            <ChipRow options={PACKAGE_OPTIONS} value={form.packageName ?? 'Standard'} onChange={set('packageName')} theme={theme} />
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Status</Text>
             <ChipRow options={STATUSES} value={form.status ?? 'INQUIRY'} onChange={set('status')} theme={theme} />
@@ -202,14 +205,15 @@ function EventFormModal({
 
 function ChipRow({
   options, value, onChange, theme,
-}: Readonly<{ options: string[]; value: string; onChange: (v: string) => void; theme: ReturnType<typeof useTheme> }>) {
+}: Readonly<{ options: Array<string | { value: string; label: string }>; value: string; onChange: (v: string) => void; theme: ReturnType<typeof useTheme> }>) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
       {options.map((opt) => {
-        const active = value === opt;
+        const option = typeof opt === 'string' ? { value: opt, label: opt } : opt;
+        const active = value === option.value;
         return (
-          <Pressable key={opt} onPress={() => onChange(opt)} style={[styles.chip, active && { backgroundColor: theme.text }]}>
-            <Text style={[styles.chipText, { color: active ? theme.background : theme.textSecondary }]}>{opt}</Text>
+          <Pressable key={option.value} onPress={() => onChange(option.value)} style={[styles.chip, active && { backgroundColor: theme.text }]}>
+            <Text style={[styles.chipText, { color: active ? theme.background : theme.textSecondary }]}>{option.label}</Text>
           </Pressable>
         );
       })}
