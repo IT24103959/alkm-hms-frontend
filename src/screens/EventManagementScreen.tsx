@@ -111,7 +111,14 @@ function EventFormModal({
     setError('');
     setSubmitting(true);
     try {
-      const payload = { ...form, attendees: Number(form.attendees), pricePerGuest: Number(form.pricePerGuest) };
+      const toIso = (v: string) => (v ? new Date(v).toISOString() : v);
+      const payload = {
+        ...form,
+        attendees: Number(form.attendees),
+        pricePerGuest: Number(form.pricePerGuest),
+        eventDateTime: toIso(form.eventDateTime),
+        endDateTime: toIso(form.endDateTime),
+      };
       if (editing === null) {
         await createEventBooking(payload);
       } else {

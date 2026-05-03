@@ -116,7 +116,11 @@ function ReservationFormModal({
     setError('');
     setSubmitting(true);
     try {
-      await createReservation({ ...form, guestCount: Number(form.guestCount) });
+      await createReservation({
+        ...form,
+        guestCount: Number(form.guestCount),
+        reservationDate: form.reservationDate ? new Date(form.reservationDate).toISOString() : form.reservationDate,
+      });
       onClose();
       onSaved();
     } catch (err) { setError(errMsg(err)); }

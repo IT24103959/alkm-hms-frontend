@@ -462,7 +462,12 @@ function BookingFormModal({
     setError("");
     setSubmitting(true);
     try {
-      await createRoomBooking(form);
+      const toIso = (v: string) => (v ? new Date(v).toISOString() : v);
+      await createRoomBooking({
+        ...form,
+        checkInDate: toIso(form.checkInDate),
+        checkOutDate: toIso(form.checkOutDate),
+      });
       onClose();
       onSaved();
     } catch (err) {
