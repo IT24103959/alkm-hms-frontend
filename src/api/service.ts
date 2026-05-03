@@ -293,7 +293,7 @@ export const getRoomsforRoomService = () => http<Room[]>("/rooms");
 export interface EventBooking {
   _id: string; customerName?: string; customerEmail?: string; customerMobile?: string;
   eventType?: string; hallName: string; eventDateTime: string; endDateTime: string;
-  attendees: number; packageName?: string; pricePerGuest?: number;
+  attendees: number; packageName?: string; pricePerHour?: number; pricePerGuest?: number;
   totalPrice?: number; status?: string; notes?: string;
 }
 
