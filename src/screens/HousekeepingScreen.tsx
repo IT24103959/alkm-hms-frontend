@@ -183,6 +183,7 @@ export default function HousekeepingScreen() {
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [overviewExpanded, setOverviewExpanded] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<HousekeepingTask | null>(null);
@@ -468,59 +469,71 @@ export default function HousekeepingScreen() {
       {/* Stats + Filters panel */}
       <View style={[styles.controlPanel, { borderBottomColor: theme.border }]}>
         <View style={[styles.statsBlock, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>
-            OVERVIEW
-          </Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statsGridRow}>
-              <StatItem
-                label="Total"
-                value={stats?.totalTasks ?? 0}
-                color="#8b5cf6"
-              />
-              <StatItem
-                label="Pending"
-                value={stats?.pendingTasks ?? 0}
-                color="#ef4444"
-              />
-            </View>
-            <View style={styles.statsGridRow}>
-              <StatItem
-                label="In Progress"
-                value={stats?.inProgressTasks ?? 0}
-                color="#3b82f6"
-              />
-              <StatItem
-                label="Completed"
-                value={stats?.completedTasks ?? 0}
-                color="#10b981"
-              />
-            </View>
-            <View style={styles.statsGridRow}>
-              <StatItem
-                label="Overdue"
-                value={stats?.overdueTasks ?? 0}
-                color="#f97316"
-              />
-              <View
-                style={[
-                  styles.statItem,
-                  {
-                    backgroundColor: "#64748b18",
-                    borderColor: "#64748b44",
-                    borderWidth: 1,
-                  },
-                ]}
-              >
-                <Text style={[styles.statValue, { color: "#64748b" }]}>
-                  {stats?.avgCompletionTimeHours ?? "0.00"}h
-                </Text>
-                <Text style={[styles.statLabel, { color: "#64748b" }]}>
-                  Avg Completion
-                </Text>
+          <Pressable
+            onPress={() => setOverviewExpanded((v) => !v)}
+            style={styles.overviewHeader}
+          >
+            <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>
+              OVERVIEW
+            </Text>
+            <Text
+              style={[styles.overviewChevron, { color: theme.textSecondary }]}
+            >
+              {overviewExpanded ? "▲" : "▼"}
+            </Text>
+          </Pressable>
+          {overviewExpanded && (
+            <View style={styles.statsGrid}>
+              <View style={styles.statsGridRow}>
+                <StatItem
+                  label="Total"
+                  value={stats?.totalTasks ?? 0}
+                  color="#8b5cf6"
+                />
+                <StatItem
+                  label="Pending"
+                  value={stats?.pendingTasks ?? 0}
+                  color="#ef4444"
+                />
+              </View>
+              <View style={styles.statsGridRow}>
+                <StatItem
+                  label="In Progress"
+                  value={stats?.inProgressTasks ?? 0}
+                  color="#3b82f6"
+                />
+                <StatItem
+                  label="Completed"
+                  value={stats?.completedTasks ?? 0}
+                  color="#10b981"
+                />
+              </View>
+              <View style={styles.statsGridRow}>
+                <StatItem
+                  label="Overdue"
+                  value={stats?.overdueTasks ?? 0}
+                  color="#f97316"
+                />
+                <View
+                  style={[
+                    styles.statItem,
+                    {
+                      backgroundColor: "#64748b18",
+                      borderColor: "#64748b44",
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.statValue, { color: "#64748b" }]}>
+                    {stats?.avgCompletionTimeHours ?? "0.00"}h
+                  </Text>
+                  <Text style={[styles.statLabel, { color: "#64748b" }]}>
+                    Avg Completion
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
+          )}
         </View>
 
         {/* Search + Filters */}
@@ -768,35 +781,79 @@ function SelectField({
   placeholder: string;
   theme: ReturnType<typeof useTheme>;
 }>) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+
+  const handleSelect = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+
   return (
-    <ScrollView
-      style={[styles.selectScroll, { borderColor: theme.border }]}
-      nestedScrollEnabled
-    >
-      {options.length === 0 ? (
-        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>
-          {placeholder}
+    <View style={{ marginBottom: 4 }}>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={[
+          styles.selectTrigger,
+          {
+            borderColor: theme.border,
+            backgroundColor: theme.backgroundElement,
+          },
+        ]}
+      >
+        <Text
+          style={{
+            color: selected ? theme.text : theme.textSecondary,
+            flex: 1,
+            fontSize: 14,
+          }}
+        >
+          {selected ? selected.label : placeholder || "Select..."}
         </Text>
-      ) : (
-        options.map((opt) => (
-          <Pressable
-            key={opt.value}
-            style={[
-              styles.selectOption,
-              value === opt.value && { backgroundColor: theme.primary + "22" },
-            ]}
-            onPress={() => onChange(opt.value)}
+        {selected?.subLabel ? (
+          <Text
+            style={{ color: theme.textSecondary, fontSize: 12, marginRight: 8 }}
           >
-            <Text style={{ color: theme.text }}>{opt.label}</Text>
-            {opt.subLabel ? (
-              <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                {opt.subLabel}
-              </Text>
-            ) : null}
-          </Pressable>
-        ))
+            {selected.subLabel}
+          </Text>
+        ) : null}
+        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+          {open ? "▲" : "▼"}
+        </Text>
+      </Pressable>
+      {open && (
+        <ScrollView
+          style={[styles.selectScroll, { borderColor: theme.border }]}
+          nestedScrollEnabled
+        >
+          {options.length === 0 ? (
+            <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>
+              {placeholder}
+            </Text>
+          ) : (
+            options.map((opt) => (
+              <Pressable
+                key={opt.value}
+                style={[
+                  styles.selectOption,
+                  value === opt.value && {
+                    backgroundColor: theme.primary + "22",
+                  },
+                ]}
+                onPress={() => handleSelect(opt.value)}
+              >
+                <Text style={{ color: theme.text }}>{opt.label}</Text>
+                {opt.subLabel ? (
+                  <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                    {opt.subLabel}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))
+          )}
+        </ScrollView>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -872,12 +929,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     gap: Spacing.two,
   },
-  panelLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    marginBottom: 2,
+  panelLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1.5 },
+  overviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
   },
+  overviewChevron: { fontSize: 10 },
   statsBlock: {
     borderBottomWidth: 1,
     paddingBottom: Spacing.two,
@@ -975,11 +1034,23 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: { fontSize: 12, fontWeight: "500" },
+  selectTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 0,
+  },
   selectScroll: {
     maxHeight: 160,
     borderWidth: 1,
     borderRadius: 8,
     marginBottom: 4,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
   },
   selectOption: { padding: 12, borderRadius: 6, gap: 2 },
   selectEmpty: { padding: 12, fontSize: 13, textAlign: "center" },
