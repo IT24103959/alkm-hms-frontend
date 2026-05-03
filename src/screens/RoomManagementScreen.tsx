@@ -420,11 +420,13 @@ function RoomFormModal({
 
 function BookingFormModal({
   visible,
+  availableRooms,
   theme,
   onClose,
   onSaved,
 }: Readonly<{
   visible: boolean;
+  availableRooms: Room[];
   theme: ReturnType<typeof useTheme>;
   onClose: () => void;
   onSaved: () => void;
@@ -513,13 +515,28 @@ function BookingFormModal({
           <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
             Room Number
           </Text>
-          <TextInput
-            style={inputStyle}
-            value={form.roomNumber}
-            onChangeText={set("roomNumber")}
-            placeholder="e.g. 101"
-            placeholderTextColor={theme.textSecondary}
-          />
+          {availableRooms.length === 0 ? (
+            <View style={[styles.input, { borderColor: theme.border, backgroundColor: theme.backgroundElement, justifyContent: 'center' }]}>
+              <Text style={{ color: theme.textSecondary, fontSize: 14 }}>No available rooms</Text>
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+              {availableRooms.map((r) => {
+                const active = form.roomNumber === r.roomNumber;
+                return (
+                  <Pressable
+                    key={r._id}
+                    onPress={() => set('roomNumber')(r.roomNumber)}
+                    style={[styles.roomPickerChip, active && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                  >
+                    <Text style={[styles.roomPickerChipText, { color: active ? '#fff' : theme.text }]}>Room {r.roomNumber}</Text>
+                    <Text style={[styles.roomPickerChipSub, { color: active ? '#ffffffaa' : theme.textSecondary }]}>{r.roomType}</Text>
+                    <Text style={[styles.roomPickerChipSub, { color: active ? '#ffffffaa' : '#10b981' }]}>{r.remainingRooms ?? 0} left</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
           <View style={styles.rowFields}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
@@ -618,6 +635,7 @@ export default function RoomManagementScreen() {
   const [roomModal, setRoomModal] = useState(false);
   const [bookingModal, setBookingModal] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
+  const [roomStatusFilter, setRoomStatusFilter] = useState<string>('ALL');
 
   const load = useCallback(async () => {
     const [r, b] = await Promise.allSettled([getRooms(), getRoomBookings()]);
@@ -636,15 +654,42 @@ export default function RoomManagementScreen() {
     load();
   };
 
+  // Room numbers that have an active booking — treat those rooms as OCCUPIED
+  const bookedRoomNumbers = useMemo(
+    () => new Set(
+      bookings
+        .filter((b) => ['BOOKED', 'CHECKED_IN'].includes(b.bookingStatus ?? ''))
+        .map((b) => b.roomNumber),
+    ),
+    [bookings],
+  );
+
+  // Derived status: bookings override roomStatus for OCCUPIED
+  const effectiveStatus = useCallback(
+    (r: Room) => bookedRoomNumbers.has(r.roomNumber) ? 'OCCUPIED' : (r.roomStatus ?? 'AVAILABLE'),
+    [bookedRoomNumbers],
+  );
+
+  const availableRooms = useMemo(
+    () => rooms.filter((r) => effectiveStatus(r) === 'AVAILABLE'),
+    [rooms, effectiveStatus],
+  );
+
+  const filteredRooms = useMemo(
+    () => roomStatusFilter === 'ALL' ? rooms : rooms.filter((r) => effectiveStatus(r) === roomStatusFilter),
+    [rooms, roomStatusFilter, effectiveStatus],
+  );
+
   const summary = useMemo(
     () => ({
       total: rooms.length,
-      available: rooms.reduce((s, r) => s + (r.remainingRooms ?? 0), 0),
+      available: availableRooms.length,
+      occupied: rooms.filter((r) => effectiveStatus(r) === 'OCCUPIED').length,
       activeBookings: bookings.filter((b) =>
         ["BOOKED", "CHECKED_IN"].includes(b.bookingStatus ?? ""),
       ).length,
     }),
-    [rooms, bookings],
+    [rooms, availableRooms, bookings, effectiveStatus],
   );
 
   const handleDeleteRoom = (room: Room) => {
@@ -733,11 +778,8 @@ export default function RoomManagementScreen() {
       <View style={styles.statsRow}>
         <StatChip label="Total" value={summary.total} color="#3b82f6" />
         <StatChip label="Available" value={summary.available} color="#10b981" />
-        <StatChip
-          label="Bookings"
-          value={summary.activeBookings}
-          color="#f59e0b"
-        />
+        <StatChip label="Occupied" value={summary.occupied} color="#ef4444" />
+        <StatChip label="Bookings" value={summary.activeBookings} color="#f59e0b" />
       </View>
 
       {/* Tabs */}
@@ -769,14 +811,30 @@ export default function RoomManagementScreen() {
       ) : null}
 
       {!loading && tab === "rooms" && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.filterBar, { borderBottomColor: '#e5e7eb' }]}>
+          {(['ALL', ...ROOM_STATUSES]).map((s) => (
+            <Pressable
+              key={s}
+              onPress={() => setRoomStatusFilter(s)}
+              style={[styles.filterChip, { borderColor: roomStatusFilter === s ? theme.primary : theme.border }, roomStatusFilter === s && { backgroundColor: theme.primary }]}
+            >
+              <Text style={[styles.filterChipText, { color: roomStatusFilter === s ? '#fff' : theme.textSecondary }]}>{s}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
+      {!loading && tab === "rooms" && (
         <FlatList
-          data={rooms}
+          data={filteredRooms}
           keyExtractor={(item, index) => item._id ?? `room-${index}`}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const es = effectiveStatus(item);
+            return (
             <View
               style={[
                 styles.card,
@@ -794,27 +852,18 @@ export default function RoomManagementScreen() {
                 <Text style={[styles.cardPrimary, { color: theme.text }]}>
                   Room {item.roomNumber}
                 </Text>
-                <View
-                  style={[
-                    styles.badge,
-                    {
-                      backgroundColor: roomStatusColor(item.roomStatus) + "22",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      { color: roomStatusColor(item.roomStatus) },
-                    ]}
-                  >
-                    {item.roomStatus ?? "-"}
-                  </Text>
+                <View style={[styles.badge, { backgroundColor: roomStatusColor(es) + '22' }]}>
+                  <Text style={[styles.badgeText, { color: roomStatusColor(es) }]}>{es}</Text>
                 </View>
               </View>
-              <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                {item.roomType} · Cap: {item.capacity}
-              </Text>
+              <View style={styles.cardRow}>
+                <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
+                  {item.roomType} · Cap: {item.capacity}
+                </Text>
+                <Text style={[styles.cardMeta, { color: '#10b981', fontWeight: '600' }]}>
+                  {item.remainingRooms ?? 0}/{item.totalRooms ?? 0} available
+                </Text>
+              </View>
               {item.roomDescription ? (
                 <Text
                   style={[styles.cardDesc, { color: theme.textSecondary }]}
@@ -846,7 +895,8 @@ export default function RoomManagementScreen() {
                 </Pressable>
               </View>
             </View>
-          )}
+            );
+          }}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: theme.textSecondary }]}>
               No rooms found.
@@ -925,6 +975,7 @@ export default function RoomManagementScreen() {
       />
       <BookingFormModal
         visible={bookingModal}
+        availableRooms={availableRooms}
         theme={theme}
         onClose={() => setBookingModal(false)}
         onSaved={load}
@@ -980,6 +1031,12 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 20, fontWeight: "700" },
   statLabel: { fontSize: 11, color: "#9ca3af" },
+  filterBar: { height: 46, paddingHorizontal: Spacing.four, paddingVertical: Spacing.two, borderBottomWidth: 1, flexGrow: 0 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginRight: 6 },
+  filterChipText: { fontSize: 12, fontWeight: '500' },
+  roomPickerChip: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, marginRight: 8, minWidth: 90, alignItems: 'center', gap: 2 },
+  roomPickerChipText: { fontSize: 13, fontWeight: '700' },
+  roomPickerChipSub: { fontSize: 11 },
   tabBar: { flexDirection: "row", borderBottomWidth: 1 },
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: "center" },
   tabActive: { borderBottomWidth: 2, borderBottomColor: "#005f73" },
