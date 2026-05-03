@@ -156,6 +156,7 @@ export default function MaintenanceScreen() {
 
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [overviewExpanded, setOverviewExpanded] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTicket, setEditingTicket] = useState<MaintenanceTicket | null>(null);
@@ -292,8 +293,13 @@ export default function MaintenanceScreen() {
       <View style={[styles.controlPanel, { borderBottomColor: theme.border }]}>
 
         <View style={[styles.statsBlock, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
-          <View style={styles.statsGrid}>
+          <Pressable onPress={() => setOverviewExpanded((v) => !v)} style={styles.overviewHeader}>
+            <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
+            <Text style={[styles.overviewChevron, { color: theme.textSecondary }]}>
+              {overviewExpanded ? '▲' : '▼'}
+            </Text>
+          </Pressable>
+          {overviewExpanded && <View style={styles.statsGrid}>
             <View style={styles.statsGridRow}>
               <StatItem label="Total" value={stats?.totalTickets ?? 0} color="#8b5cf6" />
               <StatItem label="Open" value={stats?.openTickets ?? 0} color="#ef4444" />
@@ -326,7 +332,7 @@ export default function MaintenanceScreen() {
                 ))}
               </View>
             )}
-          </View>
+          </View>}
         </View>
 
         {/* Search + Filters */}
@@ -740,7 +746,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     gap: Spacing.two,
   },
-  panelLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 2 },
+  panelLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+  overviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  overviewChevron: { fontSize: 10 },
   statsBlock: {
     borderBottomWidth: 1,
     paddingBottom: Spacing.two,
