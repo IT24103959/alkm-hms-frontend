@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -36,6 +37,34 @@ const HALL_HOURLY_RATES: Record<string, number> = {
   'GARDEN PAVILION': 20000,
   'CONFERENCE ROOM': 10000,
   'MINI HALL': 12000,
+};
+const HALL_IMAGES: Record<string, number> = {
+  'GRAND BALLROOM': require('../../assets/images/Grand Ballroom.jpg'),
+  'GARDEN PAVILION': require('../../assets/images/Garden Pavilion.jpg'),
+  'CONFERENCE ROOM': require('../../assets/images/Conferrence Room.JPG'),
+  'MINI HALL': require('../../assets/images/Mini Hall.jpg'),
+};
+const HALL_DETAILS: Record<string, { description: string; capacity: number; location: string }> = {
+  'GRAND BALLROOM': {
+    description: 'A grand indoor banquet hall suitable for weddings, conferences, and large celebrations.',
+    capacity: 200,
+    location: 'Indoor',
+  },
+  'GARDEN PAVILION': {
+    description: 'An elegant outdoor pavilion with lush surroundings, perfect for receptions and ceremonies.',
+    capacity: 150,
+    location: 'Outdoor',
+  },
+  'CONFERENCE ROOM': {
+    description: 'A professional indoor meeting space with modern facilities for business events.',
+    capacity: 80,
+    location: 'Indoor',
+  },
+  'MINI HALL': {
+    description: 'A cozy indoor hall for small gatherings, workshops, and private celebrations.',
+    capacity: 60,
+    location: 'Indoor',
+  },
 };
 const PREMIUM_FEE = 10000;
 const PACKAGE_OPTIONS = [
@@ -111,10 +140,11 @@ function EventFormModal({
   };
 
   useEffect(() => {
-    setForm((f) => ({
-      ...f,
-      pricePerHour: getHallPackageHourlyRate(f.hallName, f.packageName ?? 'Standard'),
-    }));
+    setForm((f) => {
+      const pricePerHour = getHallPackageHourlyRate(f.hallName, f.packageName ?? 'Standard');
+      if (f.pricePerHour === pricePerHour) return f;
+      return { ...f, pricePerHour };
+    });
   }, [form.hallName, form.packageName]);
 
   const set = (key: keyof typeof form) => (v: string) =>
@@ -154,6 +184,25 @@ function EventFormModal({
             <Pressable onPress={onClose}><Text style={[styles.closeBtn, { color: theme.textSecondary }]}>✕</Text></Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+            <View style={[styles.hallPreview, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}> 
+              <Image source={HALL_IMAGES[form.hallName] ?? HALL_IMAGES['GRAND BALLROOM']} style={styles.hallImage} />
+              <View style={styles.hallPreviewBody}>
+                <Text style={[styles.hallPreviewTitle, { color: theme.text }]}>{form.hallName}</Text>
+                <Text style={[styles.hallDescription, { color: theme.textSecondary }]}>{HALL_DETAILS[form.hallName]?.description ?? HALL_DETAILS['GRAND BALLROOM'].description}</Text>
+                <View style={styles.hallMetaRow}>
+                  <Text style={[styles.hallMetaLabel, { color: theme.textSecondary }]}>Capacity</Text>
+                  <Text style={[styles.hallMetaValue, { color: theme.text }]}>{HALL_DETAILS[form.hallName]?.capacity ?? 200} guests</Text>
+                </View>
+                <View style={styles.hallMetaRow}>
+                  <Text style={[styles.hallMetaLabel, { color: theme.textSecondary }]}>Location</Text>
+                  <Text style={[styles.hallMetaValue, { color: theme.text }]}>{HALL_DETAILS[form.hallName]?.location ?? 'Indoor'}</Text>
+                </View>
+                <View style={styles.hallMetaRow}>
+                  <Text style={[styles.hallMetaLabel, { color: theme.textSecondary }]}>Hourly rate</Text>
+                  <Text style={[styles.hallMetaValue, { color: theme.accent }]}>Rs. {Number(form.pricePerHour ?? 0).toLocaleString()}</Text>
+                </View>
+              </View>
+            </View>
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Customer Name</Text>
             <TextInput style={inputStyle} value={form.customerName} onChangeText={set('customerName')} placeholder="Full name" placeholderTextColor={theme.textSecondary} />
 
@@ -440,6 +489,14 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '700' },
   closeBtn: { fontSize: 20, padding: 4 },
   modalBody: { padding: Spacing.four, gap: Spacing.two, paddingBottom: 60 },
+  hallPreview: { borderRadius: 14, overflow: 'hidden', borderWidth: 1, marginBottom: 16 },
+  hallImage: { width: '100%', height: 160, resizeMode: 'cover' },
+  hallPreviewBody: { padding: Spacing.three, gap: 8 },
+  hallPreviewTitle: { fontSize: 16, fontWeight: '700' },
+  hallDescription: { fontSize: 13, lineHeight: 18 },
+  hallMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  hallMetaLabel: { fontSize: 12, fontWeight: '600' },
+  hallMetaValue: { fontSize: 13, fontWeight: '600' },
   fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
