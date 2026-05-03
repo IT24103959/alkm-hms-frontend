@@ -24,11 +24,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async ({ username, password }: { username: string; password: string }) => {
     const res = await loginApi({ username, password });
     const data = res.data;
+    console.log('Login response:', data);
+    const user = data.data.user;
     const next: AuthUser = {
-      username: data.username,
-      fullName: data.fullName,
-      role: data.role,
-      permissions: data.permissions ?? [],
+      username: user.username,
+      fullName: user.fullName ?? "Unknown",
+      role: user.role,
+      permissions: user.permissions ?? [],
     };
     setAuthToken(data.token);
     setUser(next);
