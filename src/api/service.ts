@@ -285,4 +285,4 @@ export const deleteMaintenanceTicket = (_id: string) => http<void>(`/maintenance
 
 export const getRoomServiceStaff = () => http<RoomServiceStaff[]>("/staff");
 
-export const getRooms = () => http<Room[]>("/rooms");
+export const getRoomsforRoomService = () => http<Room[]>("/rooms");

@@ -23,7 +23,7 @@ import {
   deleteMaintenanceTicket,
   getMaintenanceStats,
   getMaintenanceTickets,
-  getRooms,
+  getRoomsforRoomService,
   updateMaintenanceTicket,
   updateMaintenanceTicketStatus,
   type MaintenanceStats,
@@ -167,7 +167,7 @@ export default function MaintenanceScreen() {
       getMaintenanceTickets(),
       getMaintenanceStats(),
       getStaff({ role: 'MAINTENANCE_STAFF', size: 200 }),
-      getRooms(),
+      getRoomsforRoomService(),
     ]);
     if (ticketsRes.status === 'fulfilled') {
       const raw = ticketsRes.value.data;
