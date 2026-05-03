@@ -31,7 +31,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
 const HALLS = ['GRAND BALLROOM', 'GARDEN PAVILION', 'CONFERENCE ROOM', 'MINI HALL'];
-const PACKAGES = ['Standard', 'Premium'];
+const PACKAGES = ['Standard', 'Premium(+rs.10,000)'];
 const STATUSES = ['INQUIRY', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
 const STATUS_COLORS: Record<string, string> = {
