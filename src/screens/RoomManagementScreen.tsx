@@ -638,7 +638,7 @@ export default function RoomManagementScreen() {
 
   const summary = useMemo(
     () => ({
-      total: rooms.reduce((s, r) => s + (r.totalRooms ?? 1), 0),
+      total: rooms.length,
       available: rooms.reduce((s, r) => s + (r.remainingRooms ?? 0), 0),
       activeBookings: bookings.filter((b) =>
         ["BOOKED", "CHECKED_IN"].includes(b.bookingStatus ?? ""),
