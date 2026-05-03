@@ -75,7 +75,7 @@ export const softDeleteStaff = async (id: string): Promise<void> => {
 
 export interface PayrollRecord {
   _id: string;
-  staff?: { _id: string; name: string; position: string; basicSalary: number };
+  staff?: { _id: string; username: string; fullName: string; position: string; basicSalary: number };
   month: number; year: number;
   basicSalary?: number; overtimePay?: number; deductions?: number; netSalary?: number;
 }
@@ -202,7 +202,7 @@ export const deleteMenuItem = async (_id: string): Promise<void> => {
   await http<void>(`/menu-items/${_id}`, { method: 'DELETE' });
 };
 export const toggleMenuItemAvailability = async (_id: string, available: boolean): Promise<void> => {
-  await http<void>(`/menu-items/${_id}/availability?available=${available}`, { method: 'PATCH' });
+  await http<void>(`/menu-items/${_id}/availability`, { method: 'PATCH', body: JSON.stringify({ available }) });
 };
 
 // ─── Event Bookings ───────────────────────────────────────────────────────────
