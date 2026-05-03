@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,10 +13,10 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import DateTimePickerField from '@/components/DateTimePickerField';
+import DateTimePickerField from "@/components/DateTimePickerField";
 
 import {
   createMaintenanceTicket,
@@ -29,75 +29,101 @@ import {
   type MaintenanceStats,
   type MaintenanceTicket,
   type Room,
-} from '@/api/service';
-import { getStaff, type StaffMember } from '@/api/service';
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/hooks/use-theme';
-import { Spacing } from '@/constants/theme';
+  getStaff,
+  type StaffMember,
+} from "@/api/service";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/hooks/use-theme";
+import { Spacing } from "@/constants/theme";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const FACILITY_TYPES = ['AC', 'PLUMBING', 'ELECTRICAL', 'FURNITURE', 'OTHER'] as const;
-const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH'] as const;
-const ALL_STATUSES = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const;
-const STAFF_STATUSES = ['IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const;
+const FACILITY_TYPES = [
+  "AC",
+  "PLUMBING",
+  "ELECTRICAL",
+  "FURNITURE",
+  "OTHER",
+] as const;
+const PRIORITIES = ["LOW", "MEDIUM", "HIGH"] as const;
+const ALL_STATUSES = [
+  "OPEN",
+  "ASSIGNED",
+  "IN_PROGRESS",
+  "RESOLVED",
+  "CLOSED",
+] as const;
+const STAFF_STATUSES = ["IN_PROGRESS", "RESOLVED", "CLOSED"] as const;
 
 const STATUS_COLORS: Record<string, string> = {
-  OPEN: '#ef4444',
-  ASSIGNED: '#f97316',
-  IN_PROGRESS: '#3b82f6',
-  RESOLVED: '#10b981',
-  CLOSED: '#6b7280',
+  OPEN: "#ef4444",
+  ASSIGNED: "#f97316",
+  IN_PROGRESS: "#3b82f6",
+  RESOLVED: "#10b981",
+  CLOSED: "#6b7280",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  LOW: '#10b981',
-  MEDIUM: '#f59e0b',
-  HIGH: '#ef4444',
+  LOW: "#10b981",
+  MEDIUM: "#f59e0b",
+  HIGH: "#ef4444",
 };
 
 const initialForm = {
-  roomNumber: '',
-  facilityType: 'AC' as string,
-  issueDescription: '',
-  status: 'OPEN' as string,
-  priority: 'MEDIUM' as string,
-  staff: '',
-  deadline: '',
-  resolutionNotes: '',
-  partsUsed: '',
+  roomNumber: "",
+  facilityType: "AC" as string,
+  issueDescription: "",
+  status: "OPEN" as string,
+  priority: "MEDIUM" as string,
+  staff: "",
+  deadline: "",
+  resolutionNotes: "",
+  partsUsed: "",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const formatLabel = (v?: string) => (v ? v.replaceAll('_', ' ') : '-');
+const formatLabel = (v?: string) => (v ? v.replaceAll("_", " ") : "-");
 
 const formatDateTime = (v?: string) => {
-  if (!v) return '-';
+  if (!v) return "-";
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? v : d.toLocaleString();
 };
 
 const getErrMsg = (err: unknown, fallback: string) => {
-  const e = err as { response?: { data?: { message?: string } }; message?: string };
+  const e = err as {
+    response?: { data?: { message?: string } };
+    message?: string;
+  };
   return e?.response?.data?.message ?? e?.message ?? fallback;
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: Readonly<{ status: string }>) {
-  const color = STATUS_COLORS[status] ?? '#6b7280';
+  const color = STATUS_COLORS[status] ?? "#6b7280";
   return (
-    <View style={[styles.badge, { backgroundColor: color + '22', borderColor: color + '55' }]}>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: color + "22", borderColor: color + "55" },
+      ]}
+    >
       <Text style={[styles.badgeText, { color }]}>{formatLabel(status)}</Text>
     </View>
   );
 }
 
 function PriorityBadge({ priority }: Readonly<{ priority: string }>) {
-  const color = PRIORITY_COLORS[priority] ?? '#6b7280';
+  const color = PRIORITY_COLORS[priority] ?? "#6b7280";
   return (
-    <View style={[styles.badge, { backgroundColor: color + '22', borderColor: color + '55' }]}>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: color + "22", borderColor: color + "55" },
+      ]}
+    >
       <Text style={[styles.badgeText, { color }]}>{priority}</Text>
     </View>
   );
@@ -115,7 +141,11 @@ function ChipGroup({
   theme: ReturnType<typeof useTheme>;
 }>) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.chipScroll}
+    >
       {options.map((opt) => {
         const active = value === opt;
         return (
@@ -125,13 +155,18 @@ function ChipGroup({
             style={[
               styles.chip,
               { borderColor: theme.backgroundSelected },
-              active && { backgroundColor: theme.text, borderColor: theme.text },
-            ]}>
+              active && {
+                backgroundColor: theme.text,
+                borderColor: theme.text,
+              },
+            ]}
+          >
             <Text
               style={[
                 styles.chipText,
                 { color: active ? theme.background : theme.textSecondary },
-              ]}>
+              ]}
+            >
               {formatLabel(opt)}
             </Text>
           </Pressable>
@@ -154,30 +189,43 @@ export default function MaintenanceScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState('');
-  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [overviewExpanded, setOverviewExpanded] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingTicket, setEditingTicket] = useState<MaintenanceTicket | null>(null);
+  const [editingTicket, setEditingTicket] = useState<MaintenanceTicket | null>(
+    null,
+  );
 
-  const canManage = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role ?? '');
+  const canManage = ["SUPER_ADMIN", "MANAGER"].includes(user?.role ?? "");
 
   const loadData = useCallback(async () => {
-    const [ticketsRes, statsRes, staffRes, roomsRes] = await Promise.allSettled([
-      getMaintenanceTickets(),
-      getMaintenanceStats(),
-      getStaff({ role: 'MAINTENANCE_STAFF', size: 200 }),
-      getRoomsforRoomService(),
-    ]);
-    if (ticketsRes.status === 'fulfilled') {
+    const [ticketsRes, statsRes, staffRes, roomsRes] = await Promise.allSettled(
+      [
+        getMaintenanceTickets(),
+        getMaintenanceStats(),
+        getStaff({ role: "MAINTENANCE_STAFF", size: 200 }),
+        getRoomsforRoomService(),
+      ],
+    );
+    if (ticketsRes.status === "fulfilled") {
       const raw = ticketsRes.value.data;
-      setTickets(Array.isArray(raw) ? raw : ((raw as { content?: MaintenanceTicket[] }).content ?? []));
+      setTickets(
+        Array.isArray(raw)
+          ? raw
+          : ((raw as { content?: MaintenanceTicket[] }).content ?? []),
+      );
     }
-    if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
-    if (staffRes.status === 'fulfilled') setStaff(staffRes.value.content ?? []);
-    if (roomsRes.status === 'fulfilled') {
+    if (statsRes.status === "fulfilled") setStats(statsRes.value.data);
+    if (staffRes.status === "fulfilled") setStaff(staffRes.value.content ?? []);
+    if (roomsRes.status === "fulfilled") {
       const raw = roomsRes.value.data;
-      setRooms(Array.isArray(raw) ? raw : ((raw as { content?: Room[] }).content ?? []));
+      setRooms(
+        Array.isArray(raw)
+          ? raw
+          : ((raw as { content?: Room[] }).content ?? []),
+      );
     }
     setLoading(false);
     setRefreshing(false);
@@ -196,7 +244,11 @@ export default function MaintenanceScreen() {
     () =>
       tickets.filter((t) => {
         if (statusFilter && t.status !== statusFilter) return false;
-        if (search && !t.roomNumber?.toLowerCase().includes(search.toLowerCase())) return false;
+        if (
+          search &&
+          !t.roomNumber?.toLowerCase().includes(search.toLowerCase())
+        )
+          return false;
         return true;
       }),
     [tickets, statusFilter, search],
@@ -214,19 +266,19 @@ export default function MaintenanceScreen() {
 
   const handleDelete = (ticket: MaintenanceTicket) => {
     Alert.alert(
-      'Delete Ticket',
+      "Delete Ticket",
       `Delete maintenance ticket for room ${ticket.roomNumber}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               await deleteMaintenanceTicket(ticket._id);
               loadData();
             } catch (err) {
-              Alert.alert('Error', getErrMsg(err, 'Unable to delete ticket.'));
+              Alert.alert("Error", getErrMsg(err, "Unable to delete ticket."));
             }
           },
         },
@@ -247,11 +299,11 @@ export default function MaintenanceScreen() {
               await updateMaintenanceTicketStatus(ticket._id, s);
               loadData();
             } catch (err) {
-              Alert.alert('Error', getErrMsg(err, 'Could not update status.'));
+              Alert.alert("Error", getErrMsg(err, "Could not update status."));
             }
           },
         })),
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
       ],
     );
   };
@@ -268,21 +320,28 @@ export default function MaintenanceScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
       {/* Header */}
-      <View
-        style={[
-          styles.pageHeader,
-          { borderBottomColor: theme.border },
-        ]}>
+      <View style={[styles.pageHeader, { borderBottomColor: theme.border }]}>
         <View>
-          <Text style={[styles.pageEyebrow, { color: theme.textSecondary }]}>ROOM OPERATIONS</Text>
-          <Text style={[styles.pageTitle, { color: theme.text }]}>Maintenance</Text>
+          <Text style={[styles.pageEyebrow, { color: theme.textSecondary }]}>
+            ROOM OPERATIONS
+          </Text>
+          <Text style={[styles.pageTitle, { color: theme.text }]}>
+            Maintenance
+          </Text>
         </View>
         {canManage && (
           <Pressable
-            style={({ pressed }) => [styles.newBtn, { backgroundColor: theme.primary }, pressed && styles.pressed]}
-            onPress={openCreate}>
+            style={({ pressed }) => [
+              styles.newBtn,
+              { backgroundColor: theme.primary },
+              pressed && styles.pressed,
+            ]}
+            onPress={openCreate}
+          >
             <Text style={styles.newBtnText}>+ New Ticket</Text>
           </Pressable>
         )}
@@ -290,93 +349,183 @@ export default function MaintenanceScreen() {
 
       {/* Stats + Filters panel */}
       <View style={[styles.controlPanel, { borderBottomColor: theme.border }]}>
-
         <View style={[styles.statsBlock, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statsGridRow}>
-              <StatItem label="Total" value={stats?.totalTickets ?? 0} color="#8b5cf6" />
-              <StatItem label="Open" value={stats?.openTickets ?? 0} color="#ef4444" />
-            </View>
-            <View style={styles.statsGridRow}>
-              <StatItem
-                label="In Progress"
-                value={stats?.inProgressTickets ?? 0}
-                color="#3b82f6"
-              />
-              <StatItem label="Resolved" value={stats?.resolvedTickets ?? 0} color="#10b981" />
-            </View>
-            <View style={styles.statsGridRow}>
-              <StatItem label="Overdue" value={stats?.overdueTickets ?? 0} color="#f97316" />
-              <View style={[styles.statItem, { backgroundColor: '#64748b18', borderColor: '#64748b44', borderWidth: 1 }]}>
-                <Text style={[styles.statValue, { color: '#64748b' }]}>
-                  {stats?.avgResolutionTimeHours ?? '0.00'}h
-                </Text>
-                <Text style={[styles.statLabel, { color: '#64748b' }]}>Avg Resolution</Text>
+          <Pressable
+            onPress={() => setOverviewExpanded((v) => !v)}
+            style={styles.overviewHeader}
+          >
+            <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>
+              OVERVIEW
+            </Text>
+            <Text
+              style={[styles.overviewChevron, { color: theme.textSecondary }]}
+            >
+              {overviewExpanded ? "▲" : "▼"}
+            </Text>
+          </Pressable>
+          {overviewExpanded && (
+            <View style={styles.statsGrid}>
+              <View style={styles.statsGridRow}>
+                <StatItem
+                  label="Total"
+                  value={stats?.totalTickets ?? 0}
+                  color="#8b5cf6"
+                />
+                <StatItem
+                  label="Open"
+                  value={stats?.openTickets ?? 0}
+                  color="#ef4444"
+                />
               </View>
-            </View>
-            {stats?.recurringIssues && stats.recurringIssues.length > 0 && (
-              <View style={[styles.recurringBlock, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-                <Text style={[styles.recurringTitle, { color: theme.textSecondary }]}>RECURRING ISSUES</Text>
-                {stats.recurringIssues.map((issue) => (
-                  <View key={issue._id} style={styles.recurringRow}>
-                    <Text style={[styles.recurringLabel, { color: theme.text }]}>{issue._id.replaceAll('_', ' ')}</Text>
-                    <Text style={[styles.recurringCount, { color: '#f97316' }]}>{issue.count}</Text>
-                  </View>
-                ))}
+              <View style={styles.statsGridRow}>
+                <StatItem
+                  label="In Progress"
+                  value={stats?.inProgressTickets ?? 0}
+                  color="#3b82f6"
+                />
+                <StatItem
+                  label="Resolved"
+                  value={stats?.resolvedTickets ?? 0}
+                  color="#10b981"
+                />
               </View>
-            )}
-          </View>
+              <View style={styles.statsGridRow}>
+                <StatItem
+                  label="Overdue"
+                  value={stats?.overdueTickets ?? 0}
+                  color="#f97316"
+                />
+                <View
+                  style={[
+                    styles.statItem,
+                    {
+                      backgroundColor: "#64748b18",
+                      borderColor: "#64748b44",
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.statValue, { color: "#64748b" }]}>
+                    {stats?.avgResolutionTimeHours ?? "0.00"}h
+                  </Text>
+                  <Text style={[styles.statLabel, { color: "#64748b" }]}>
+                    Avg Resolution
+                  </Text>
+                </View>
+              </View>
+              {stats?.recurringIssues && stats.recurringIssues.length > 0 && (
+                <View
+                  style={[
+                    styles.recurringBlock,
+                    {
+                      borderColor: theme.border,
+                      backgroundColor: theme.backgroundElement,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.recurringTitle,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    RECURRING ISSUES
+                  </Text>
+                  {stats.recurringIssues.map((issue) => (
+                    <View key={issue._id} style={styles.recurringRow}>
+                      <Text
+                        style={[styles.recurringLabel, { color: theme.text }]}
+                      >
+                        {issue._id.replaceAll("_", " ")}
+                      </Text>
+                      <Text
+                        style={[styles.recurringCount, { color: "#f97316" }]}
+                      >
+                        {issue.count}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Search + Filters */}
         <View style={styles.filterSection}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement },
-          ]}
-          placeholder="Search room..."
-          placeholderTextColor={theme.textSecondary}
-          value={search}
-          onChangeText={setSearch}
-        />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
-          {[{ label: 'All', value: '' }, ...ALL_STATUSES.map((s) => ({ label: formatLabel(s), value: s }))].map(
-            (opt) => (
+          <TextInput
+            style={[
+              styles.searchInput,
+              {
+                color: theme.text,
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundElement,
+              },
+            ]}
+            placeholder="Search room..."
+            placeholderTextColor={theme.textSecondary}
+            value={search}
+            onChangeText={setSearch}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterChips}
+          >
+            {[
+              { label: "All", value: "" },
+              ...ALL_STATUSES.map((s) => ({ label: formatLabel(s), value: s })),
+            ].map((opt) => (
               <Pressable
                 key={opt.value}
                 onPress={() => setStatusFilter(opt.value)}
                 style={[
                   styles.filterChip,
                   { borderColor: theme.border },
-                  statusFilter === opt.value && { backgroundColor: theme.text, borderColor: theme.text },
-                ]}>
+                  statusFilter === opt.value && {
+                    backgroundColor: theme.text,
+                    borderColor: theme.text,
+                  },
+                ]}
+              >
                 <Text
                   style={[
                     styles.filterChipText,
-                    { color: statusFilter === opt.value ? theme.background : theme.textSecondary },
-                  ]}>
-                  {opt.label || 'All'}
+                    {
+                      color:
+                        statusFilter === opt.value
+                          ? theme.background
+                          : theme.textSecondary,
+                    },
+                  ]}
+                >
+                  {opt.label || "All"}
                 </Text>
               </Pressable>
-            ),
-          )}
-        </ScrollView>
+            ))}
+          </ScrollView>
         </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={theme.text} style={{ marginTop: 40 }} />
+        <ActivityIndicator
+          size="large"
+          color={theme.text}
+          style={{ marginTop: 40 }}
+        />
       ) : (
         <FlatList
           data={filteredTickets}
           keyExtractor={(item, index) => item._id ?? `ticket-${index}`}
           renderItem={renderTicket}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           ListEmptyComponent={
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No tickets found.</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              No tickets found.
+            </Text>
           }
         />
       )}
@@ -414,9 +563,12 @@ function TicketCard({
       style={[
         styles.card,
         { backgroundColor: theme.card, borderColor: theme.border },
-      ]}>
+      ]}
+    >
       <View style={styles.cardHeader}>
-        <Text style={[styles.cardRoom, { color: theme.text }]}>Room {item.roomNumber}</Text>
+        <Text style={[styles.cardRoom, { color: theme.text }]}>
+          Room {item.roomNumber}
+        </Text>
         <StatusBadge status={item.status} />
       </View>
 
@@ -424,13 +576,16 @@ function TicketCard({
         <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
           🔧 {formatLabel(item.facilityType)}
         </Text>
-        <View style={{ marginLeft: 'auto' }}>
+        <View style={{ marginLeft: "auto" }}>
           <PriorityBadge priority={item.priority} />
         </View>
       </View>
 
       {item.issueDescription ? (
-        <Text style={[styles.cardDescription, { color: theme.text }]} numberOfLines={2}>
+        <Text
+          style={[styles.cardDescription, { color: theme.text }]}
+          numberOfLines={2}
+        >
           {item.issueDescription}
         </Text>
       ) : null}
@@ -446,28 +601,50 @@ function TicketCard({
         </Text>
       ) : null}
       {item.resolutionNotes ? (
-        <Text style={[styles.cardNotes, { color: theme.textSecondary }]} numberOfLines={2}>
+        <Text
+          style={[styles.cardNotes, { color: theme.textSecondary }]}
+          numberOfLines={2}
+        >
           ✅ {item.resolutionNotes}
         </Text>
       ) : null}
 
       <View style={styles.cardActions}>
         <Pressable
-          style={({ pressed }) => [styles.actionBtn, styles.statusBtn, pressed && styles.pressed]}
-          onPress={() => onStatus(item)}>
+          style={({ pressed }) => [
+            styles.actionBtn,
+            styles.statusBtn,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => onStatus(item)}
+        >
           <Text style={styles.actionBtnText}>Set Status</Text>
         </Pressable>
         {canManage ? (
           <>
             <Pressable
-              style={({ pressed }) => [styles.actionBtn, styles.editBtn, pressed && styles.pressed]}
-              onPress={() => onEdit(item)}>
-              <Text style={[styles.actionBtnText, { color: '#f59e0b' }]}>Edit</Text>
+              style={({ pressed }) => [
+                styles.actionBtn,
+                styles.editBtn,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => onEdit(item)}
+            >
+              <Text style={[styles.actionBtnText, { color: "#f59e0b" }]}>
+                Edit
+              </Text>
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.actionBtn, styles.deleteBtn, pressed && styles.pressed]}
-              onPress={() => onDelete(item)}>
-              <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete</Text>
+              style={({ pressed }) => [
+                styles.actionBtn,
+                styles.deleteBtn,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => onDelete(item)}
+            >
+              <Text style={[styles.actionBtnText, { color: "#ef4444" }]}>
+                Delete
+              </Text>
             </Pressable>
           </>
         ) : null}
@@ -494,48 +671,54 @@ function MaintenanceFormModal({
   onSaved: () => void;
 }>) {
   const [form, setForm] = useState(initialForm);
-  const [formError, setFormError] = useState('');
+  const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const inputStyle = [styles.input, {
-    color: theme.text,
-    borderColor: theme.border,
-    backgroundColor: theme.backgroundElement,
-  }];
+  const inputStyle = [
+    styles.input,
+    {
+      color: theme.text,
+      borderColor: theme.border,
+      backgroundColor: theme.backgroundElement,
+    },
+  ];
 
   useEffect(() => {
     if (!visible) return;
     if (editingTicket) {
       setForm({
-        roomNumber: editingTicket.roomNumber ?? '',
-        facilityType: editingTicket.facilityType ?? 'AC',
-        issueDescription: editingTicket.issueDescription ?? '',
-        status: editingTicket.status ?? 'OPEN',
-        priority: editingTicket.priority ?? 'MEDIUM',
-        staff: editingTicket.assignedStaff?._id ?? editingTicket.staff ?? '',
-        deadline: editingTicket.deadline?.slice(0, 16) ?? '',
-        resolutionNotes: editingTicket.resolutionNotes ?? '',
-        partsUsed: editingTicket.partsUsed ?? '',
+        roomNumber: editingTicket.roomNumber ?? "",
+        facilityType: editingTicket.facilityType ?? "AC",
+        issueDescription: editingTicket.issueDescription ?? "",
+        status: editingTicket.status ?? "OPEN",
+        priority: editingTicket.priority ?? "MEDIUM",
+        staff: editingTicket.assignedStaff?._id ?? editingTicket.staff ?? "",
+        deadline: editingTicket.deadline?.slice(0, 16) ?? "",
+        resolutionNotes: editingTicket.resolutionNotes ?? "",
+        partsUsed: editingTicket.partsUsed ?? "",
       });
     } else {
       setForm(initialForm);
     }
-    setFormError('');
+    setFormError("");
   }, [editingTicket, visible]);
 
   const setField = useCallback(
-    (key: keyof typeof initialForm) => (v: string) => setForm((f) => ({ ...f, [key]: v })),
+    (key: keyof typeof initialForm) => (v: string) =>
+      setForm((f) => ({ ...f, [key]: v })),
     [],
   );
 
   const handleSubmit = async () => {
     if (!form.roomNumber.trim() || !form.issueDescription.trim()) {
-      setFormError('Room number and issue description are required.');
+      setFormError("Room number and issue description are required.");
       return;
     }
-    setFormError('');
+    setFormError("");
     setSubmitting(true);
-    const deadlineIso = form.deadline ? new Date(form.deadline).toISOString() : undefined;
+    const deadlineIso = form.deadline
+      ? new Date(form.deadline).toISOString()
+      : undefined;
     const basePayload = {
       roomNumber: form.roomNumber.trim(),
       facilityType: form.facilityType,
@@ -561,7 +744,7 @@ function MaintenanceFormModal({
       onClose();
       onSaved();
     } catch (err) {
-      setFormError(getErrMsg(err, 'Unable to save ticket.'));
+      setFormError(getErrMsg(err, "Unable to save ticket."));
     } finally {
       setSubmitting(false);
     }
@@ -569,51 +752,91 @@ function MaintenanceFormModal({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.modalSafeArea, { backgroundColor: theme.background }]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+      <SafeAreaView
+        style={[styles.modalSafeArea, { backgroundColor: theme.background }]}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View
+            style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+          >
             <Text style={[styles.modalTitle, { color: theme.text }]}>
-              {editingTicket ? 'Edit Ticket' : 'New Maintenance Ticket'}
+              {editingTicket ? "Edit Ticket" : "New Maintenance Ticket"}
             </Text>
             <Pressable onPress={onClose}>
-              <Text style={[styles.modalClose, { color: theme.textSecondary }]}>✕</Text>
+              <Text style={[styles.modalClose, { color: theme.textSecondary }]}>
+                ✕
+              </Text>
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={styles.modalBody}
+            keyboardShouldPersistTaps="handled"
+          >
             <FormField label="Room Number" theme={theme}>
               <SelectField
-                options={rooms.map((r) => ({ label: r.roomNumber, value: r.roomNumber }))}
+                options={rooms.map((r) => ({
+                  label: r.roomNumber,
+                  value: r.roomNumber,
+                }))}
                 value={form.roomNumber}
-                onChange={setField('roomNumber')}
+                onChange={setField("roomNumber")}
                 placeholder="No rooms loaded"
                 theme={theme}
               />
             </FormField>
 
             <FormField label="Facility Type" theme={theme}>
-              <ChipGroup options={FACILITY_TYPES} value={form.facilityType} onChange={setField('facilityType')} theme={theme} />
+              <ChipGroup
+                options={FACILITY_TYPES}
+                value={form.facilityType}
+                onChange={setField("facilityType")}
+                theme={theme}
+              />
             </FormField>
 
             <FormField label="Issue Description" theme={theme}>
-              <TextInput style={[...inputStyle, styles.textarea]} placeholder="Describe the issue..."
-                placeholderTextColor={theme.textSecondary} multiline numberOfLines={3}
-                value={form.issueDescription} onChangeText={setField('issueDescription')} />
+              <TextInput
+                style={[...inputStyle, styles.textarea]}
+                placeholder="Describe the issue..."
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                numberOfLines={3}
+                value={form.issueDescription}
+                onChangeText={setField("issueDescription")}
+              />
             </FormField>
 
             <FormField label="Priority" theme={theme}>
-              <ChipGroup options={PRIORITIES} value={form.priority} onChange={setField('priority')} theme={theme} />
+              <ChipGroup
+                options={PRIORITIES}
+                value={form.priority}
+                onChange={setField("priority")}
+                theme={theme}
+              />
             </FormField>
 
             <FormField label="Status" theme={theme}>
-              <ChipGroup options={ALL_STATUSES} value={form.status} onChange={setField('status')} theme={theme} />
+              <ChipGroup
+                options={ALL_STATUSES}
+                value={form.status}
+                onChange={setField("status")}
+                theme={theme}
+              />
             </FormField>
 
             <FormField label="Staff Member (optional)" theme={theme}>
               <SelectField
-                options={staff.map((s) => ({ label: s.name, subLabel: s.position, value: s._id }))}
+                options={staff.map((s) => ({
+                  label: s.name,
+                  subLabel: s.position,
+                  value: s._id,
+                }))}
                 value={form.staff}
-                onChange={setField('staff')}
+                onChange={setField("staff")}
                 placeholder="No maintenance staff loaded"
                 theme={theme}
               />
@@ -622,32 +845,52 @@ function MaintenanceFormModal({
             <FormField label="Deadline (optional)" theme={theme}>
               <DateTimePickerField
                 value={form.deadline}
-                onChange={setField('deadline')}
+                onChange={setField("deadline")}
                 mode="datetime"
               />
             </FormField>
 
             <FormField label="Resolution Notes (optional)" theme={theme}>
-              <TextInput style={[...inputStyle, styles.textarea]} placeholder="Resolution details..."
-                placeholderTextColor={theme.textSecondary} multiline numberOfLines={3}
-                value={form.resolutionNotes} onChangeText={setField('resolutionNotes')} />
+              <TextInput
+                style={[...inputStyle, styles.textarea]}
+                placeholder="Resolution details..."
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                numberOfLines={3}
+                value={form.resolutionNotes}
+                onChangeText={setField("resolutionNotes")}
+              />
             </FormField>
 
             <FormField label="Parts Used (optional)" theme={theme}>
-              <TextInput style={inputStyle} placeholder="e.g. Filter x2, Pipe joint"
-                placeholderTextColor={theme.textSecondary} value={form.partsUsed} onChangeText={setField('partsUsed')} />
+              <TextInput
+                style={inputStyle}
+                placeholder="e.g. Filter x2, Pipe joint"
+                placeholderTextColor={theme.textSecondary}
+                value={form.partsUsed}
+                onChangeText={setField("partsUsed")}
+              />
             </FormField>
 
-            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+            {formError ? (
+              <Text style={styles.formError}>{formError}</Text>
+            ) : null}
 
             <Pressable
-              style={({ pressed }) => [styles.submitBtn, pressed && styles.pressed, submitting && styles.disabledBtn]}
+              style={({ pressed }) => [
+                styles.submitBtn,
+                pressed && styles.pressed,
+                submitting && styles.disabledBtn,
+              ]}
               onPress={handleSubmit}
-              disabled={submitting}>
+              disabled={submitting}
+            >
               {submitting ? (
                 <ActivityIndicator color="#1e293b" />
               ) : (
-                <Text style={styles.submitBtnText}>{editingTicket ? 'Update Ticket' : 'Create Ticket'}</Text>
+                <Text style={styles.submitBtnText}>
+                  {editingTicket ? "Update Ticket" : "Create Ticket"}
+                </Text>
               )}
             </Pressable>
           </ScrollView>
@@ -670,22 +913,79 @@ function SelectField({
   placeholder: string;
   theme: ReturnType<typeof useTheme>;
 }>) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+
+  const handleSelect = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+
   return (
-    <ScrollView
-      style={[styles.selectScroll, { borderColor: theme.border }]}
-      nestedScrollEnabled>
-      {options.length === 0 ? (
-        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>{placeholder}</Text>
-      ) : options.map((opt) => (
-        <Pressable
-          key={opt.value}
-          style={[styles.selectOption, value === opt.value && { backgroundColor: theme.primary + '22' }]}
-          onPress={() => onChange(opt.value)}>
-          <Text style={{ color: theme.text }}>{opt.label}</Text>
-          {opt.subLabel ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.subLabel}</Text> : null}
-        </Pressable>
-      ))}
-    </ScrollView>
+    <View style={{ marginBottom: 4 }}>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={[
+          styles.selectTrigger,
+          {
+            borderColor: theme.border,
+            backgroundColor: theme.backgroundElement,
+          },
+        ]}
+      >
+        <Text
+          style={{
+            color: selected ? theme.text : theme.textSecondary,
+            flex: 1,
+            fontSize: 14,
+          }}
+        >
+          {selected ? selected.label : placeholder || "Select..."}
+        </Text>
+        {selected?.subLabel ? (
+          <Text
+            style={{ color: theme.textSecondary, fontSize: 12, marginRight: 8 }}
+          >
+            {selected.subLabel}
+          </Text>
+        ) : null}
+        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+          {open ? "▲" : "▼"}
+        </Text>
+      </Pressable>
+      {open && (
+        <ScrollView
+          style={[styles.selectScroll, { borderColor: theme.border }]}
+          nestedScrollEnabled
+        >
+          {options.length === 0 ? (
+            <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>
+              {placeholder}
+            </Text>
+          ) : (
+            options.map((opt) => (
+              <Pressable
+                key={opt.value}
+                style={[
+                  styles.selectOption,
+                  value === opt.value && {
+                    backgroundColor: theme.primary + "22",
+                  },
+                ]}
+                onPress={() => handleSelect(opt.value)}
+              >
+                <Text style={{ color: theme.text }}>{opt.label}</Text>
+                {opt.subLabel ? (
+                  <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                    {opt.subLabel}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))
+          )}
+        </ScrollView>
+      )}
+    </View>
   );
 }
 
@@ -700,18 +1000,35 @@ function FormField({
 }>) {
   return (
     <View style={styles.formField}>
-      <Text style={[styles.formLabel, { color: theme.textSecondary }]}>{label}</Text>
+      <Text style={[styles.formLabel, { color: theme.textSecondary }]}>
+        {label}
+      </Text>
       {children}
     </View>
   );
 }
 
-function StatItem({ label, value, color }: Readonly<{ label: string; value: number; color: string }>) {
+function StatItem({
+  label,
+  value,
+  color,
+}: Readonly<{ label: string; value: number; color: string }>) {
   const theme = useTheme();
   return (
-    <View style={[styles.statItem, { backgroundColor: `${color}18`, borderColor: `${color}44`, borderWidth: 1 }]}>
+    <View
+      style={[
+        styles.statItem,
+        {
+          backgroundColor: `${color}18`,
+          borderColor: `${color}44`,
+          borderWidth: 1,
+        },
+      ]}
+    >
       <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
+      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -719,28 +1036,35 @@ function StatItem({ label, value, color }: Readonly<{ label: string; value: numb
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   pageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
   },
-  pageEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
-  pageTitle: { fontSize: 22, fontWeight: '700', marginTop: 2 },
+  pageEyebrow: { fontSize: 10, fontWeight: "700", letterSpacing: 1.5 },
+  pageTitle: { fontSize: 22, fontWeight: "700", marginTop: 2 },
   newBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  newBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  newBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   controlPanel: {
     borderBottomWidth: 1,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
     gap: Spacing.two,
   },
-  panelLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 2 },
+  panelLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1.5 },
+  overviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  overviewChevron: { fontSize: 10 },
   statsBlock: {
     borderBottomWidth: 1,
     paddingBottom: Spacing.two,
@@ -750,7 +1074,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   statsGridRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.two,
   },
   recurringBlock: {
@@ -761,18 +1085,18 @@ const styles = StyleSheet.create({
   },
   recurringTitle: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1.2,
     marginBottom: 2,
   },
   recurringRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 2,
   },
-  recurringLabel: { fontSize: 13, fontWeight: '500' },
-  recurringCount: { fontSize: 13, fontWeight: '700' },
+  recurringLabel: { fontSize: 13, fontWeight: "500" },
+  recurringCount: { fontSize: 13, fontWeight: "700" },
   statItem: {
     flex: 1,
     borderRadius: 10,
@@ -780,13 +1104,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   statsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
     gap: Spacing.two,
   },
-  statValue: { fontSize: 20, fontWeight: '700' },
-  statLabel: { fontSize: 11, color: '#9ca3af' },
+  statValue: { fontSize: 20, fontWeight: "700" },
+  statLabel: { fontSize: 11, color: "#9ca3af" },
   filterSection: { gap: Spacing.two },
   filterBar: {
     paddingHorizontal: Spacing.four,
@@ -801,7 +1125,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 14,
   },
-  filterChips: { flexDirection: 'row' },
+  filterChips: { flexDirection: "row" },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 5,
@@ -809,30 +1133,43 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginRight: 6,
   },
-  filterChipText: { fontSize: 12, fontWeight: '500' },
-  listContent: { padding: Spacing.three, gap: Spacing.two, paddingBottom: Spacing.six },
-  emptyText: { textAlign: 'center', marginTop: 40, fontSize: 14 },
+  filterChipText: { fontSize: 12, fontWeight: "500" },
+  listContent: {
+    padding: Spacing.three,
+    gap: Spacing.two,
+    paddingBottom: Spacing.six,
+  },
+  emptyText: { textAlign: "center", marginTop: 40, fontSize: 14 },
   card: {
     borderRadius: 12,
     borderWidth: 1,
     padding: Spacing.three,
     gap: 8,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardRoom: { fontSize: 17, fontWeight: '700' },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardRoom: { fontSize: 17, fontWeight: "700" },
+  cardRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   cardMeta: { fontSize: 13 },
   cardDescription: { fontSize: 14, lineHeight: 20 },
-  cardNotes: { fontSize: 12, fontStyle: 'italic' },
-  cardActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  cardNotes: { fontSize: 12, fontStyle: "italic" },
+  cardActions: { flexDirection: "row", gap: 8, marginTop: 4 },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  statusBtn: { backgroundColor: '#1d4ed822' },
-  editBtn: { backgroundColor: '#f59e0b22' },
-  deleteBtn: { backgroundColor: '#ef444422' },
-  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#3b82f6' },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1 },
-  badgeText: { fontSize: 11, fontWeight: '600' },
-  chipScroll: { flexDirection: 'row' },
+  statusBtn: { backgroundColor: "#1d4ed822" },
+  editBtn: { backgroundColor: "#f59e0b22" },
+  deleteBtn: { backgroundColor: "#ef444422" },
+  actionBtnText: { fontSize: 12, fontWeight: "600", color: "#3b82f6" },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  badgeText: { fontSize: 11, fontWeight: "600" },
+  chipScroll: { flexDirection: "row" },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -840,40 +1177,63 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginRight: 6,
   },
-  chipText: { fontSize: 12, fontWeight: '500' },
-  selectScroll: { maxHeight: 160, borderWidth: 1, borderRadius: 8, marginBottom: 4 },
+  chipText: { fontSize: 12, fontWeight: "500" },
+  selectTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 0,
+  },
+  selectScroll: {
+    maxHeight: 160,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 4,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
   selectOption: { padding: 12, borderRadius: 6, gap: 2 },
-  selectEmpty: { padding: 12, fontSize: 13, textAlign: 'center' },
+  selectEmpty: { padding: 12, fontSize: 13, textAlign: "center" },
   pressed: { opacity: 0.7 },
   modalSafeArea: { flex: 1 },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: Spacing.four,
     borderBottomWidth: 1,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700' },
+  modalTitle: { fontSize: 18, fontWeight: "700" },
   modalClose: { fontSize: 20, padding: 4 },
   modalBody: { padding: Spacing.four, gap: Spacing.three, paddingBottom: 60 },
   formField: { gap: 6 },
-  formLabel: { fontSize: 13, fontWeight: '600' },
-  input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
-  textarea: { minHeight: 80, textAlignVertical: 'top' },
+  formLabel: { fontSize: 13, fontWeight: "600" },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  textarea: { minHeight: 80, textAlignVertical: "top" },
   formError: {
-    color: '#ef4444',
+    color: "#ef4444",
     fontSize: 13,
-    backgroundColor: '#ef444420',
+    backgroundColor: "#ef444420",
     padding: 10,
     borderRadius: 8,
   },
   submitBtn: {
-    backgroundColor: '#f4d28f',
+    backgroundColor: "#f4d28f",
     paddingVertical: 14,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
-  submitBtnText: { color: '#1e293b', fontSize: 16, fontWeight: '700' },
+  submitBtnText: { color: "#1e293b", fontSize: 16, fontWeight: "700" },
   disabledBtn: { opacity: 0.6 },
 });
