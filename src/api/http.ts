@@ -39,6 +39,14 @@ export async function http<T>(path: string, options: RequestInit = {}): Promise<
     throw error;
   }
 
+  // Handle empty bodies (e.g. 204 No Content for DELETE responses)
+  const contentType = response.headers.get('content-type');
+  const contentLength = response.headers.get('content-length');
+  const hasBody = response.status !== 204 && contentLength !== '0' && contentType?.includes('application/json');
+  if (!hasBody) {
+    return { data: undefined as T };
+  }
+
   const json = await response.json();
   // Spring Boot wraps responses: { status: "success", message: "...", data: <payload> }
   // Detect the envelope and unwrap so callers always get the inner payload.
