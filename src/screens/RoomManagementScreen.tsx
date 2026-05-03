@@ -525,22 +525,12 @@ function BookingFormModal({
               <Text style={{ color: theme.textSecondary, fontSize: 14 }}>No available rooms</Text>
             </View>
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-              {availableRooms.map((r) => {
-                const active = form.roomNumber === r.roomNumber;
-                return (
-                  <Pressable
-                    key={r._id}
-                    onPress={() => set('roomNumber')(r.roomNumber)}
-                    style={[styles.roomPickerChip, active && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  >
-                    <Text style={[styles.roomPickerChipText, { color: active ? '#fff' : theme.text }]}>Room {r.roomNumber}</Text>
-                    <Text style={[styles.roomPickerChipSub, { color: active ? '#ffffffaa' : theme.textSecondary }]}>{r.roomType}</Text>
-                    <Text style={[styles.roomPickerChipSub, { color: active ? '#ffffffaa' : '#10b981' }]}>{r.remainingRooms ?? 0} left</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            <RoomDropdown
+              rooms={availableRooms}
+              value={form.roomNumber}
+              onSelect={(rn) => set('roomNumber')(rn)}
+              theme={theme}
+            />
           )}
           <View style={styles.rowFields}>
             <View style={{ flex: 1 }}>
@@ -586,6 +576,58 @@ function BookingFormModal({
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function RoomDropdown({
+  rooms,
+  value,
+  onSelect,
+  theme,
+}: Readonly<{
+  rooms: Room[];
+  value: string;
+  onSelect: (roomNumber: string) => void;
+  theme: ReturnType<typeof useTheme>;
+}>) {
+  const [open, setOpen] = useState(false);
+  const selected = rooms.find((r) => r.roomNumber === value);
+
+  return (
+    <View style={{ marginBottom: 8 }}>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={[styles.input, { flexDirection: 'row', alignItems: 'center', borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+      >
+        <Text style={{ flex: 1, color: selected ? theme.text : theme.textSecondary, fontSize: 14 }}>
+          {selected ? `Room ${selected.roomNumber} — ${selected.roomType}` : 'Select a room...'}
+        </Text>
+        {selected ? (
+          <Text style={{ color: '#10b981', fontSize: 12, marginRight: 8 }}>{selected.remainingRooms ?? 0} left</Text>
+        ) : null}
+        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{open ? '▲' : '▼'}</Text>
+      </Pressable>
+      {open && (
+        <ScrollView
+          style={[styles.roomDropdownList, { borderColor: theme.border }]}
+          nestedScrollEnabled
+        >
+          {rooms.map((r) => (
+            <Pressable
+              key={r._id}
+              onPress={() => { onSelect(r.roomNumber); setOpen(false); }}
+              style={[styles.roomDropdownOption, value === r.roomNumber && { backgroundColor: theme.primary + '22' }]}
+            >
+              <Text style={{ color: theme.text, fontWeight: '600', fontSize: 14 }}>Room {r.roomNumber}</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{r.roomType}</Text>
+                <Text style={{ color: '#10b981', fontSize: 12 }}>{r.remainingRooms ?? 0} available</Text>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
 
 function ChipRow({
   options,
@@ -1042,9 +1084,8 @@ const styles = StyleSheet.create({
   filterBarContent: { paddingHorizontal: Spacing.four, alignItems: 'center', gap: 6 },
   filterChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginRight: 6 },
   filterChipText: { fontSize: 12, fontWeight: '500' },
-  roomPickerChip: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, marginRight: 8, minWidth: 90, alignItems: 'center', gap: 2 },
-  roomPickerChipText: { fontSize: 13, fontWeight: '700' },
-  roomPickerChipSub: { fontSize: 11 },
+  roomDropdownList: { maxHeight: 180, borderWidth: 1, borderRadius: 8, borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+  roomDropdownOption: { padding: 12, gap: 2 },
   tabBar: { flexDirection: "row", borderBottomWidth: 1 },
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: "center" },
   tabActive: { borderBottomWidth: 2, borderBottomColor: "#005f73" },

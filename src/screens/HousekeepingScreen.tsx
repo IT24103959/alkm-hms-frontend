@@ -734,22 +734,45 @@ function SelectField({
   placeholder: string;
   theme: ReturnType<typeof useTheme>;
 }>) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+
+  const handleSelect = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+
   return (
-    <ScrollView
-      style={[styles.selectScroll, { borderColor: theme.border }]}
-      nestedScrollEnabled>
-      {options.length === 0 ? (
-        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>{placeholder}</Text>
-      ) : options.map((opt) => (
-        <Pressable
-          key={opt.value}
-          style={[styles.selectOption, value === opt.value && { backgroundColor: theme.primary + '22' }]}
-          onPress={() => onChange(opt.value)}>
-          <Text style={{ color: theme.text }}>{opt.label}</Text>
-          {opt.subLabel ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.subLabel}</Text> : null}
-        </Pressable>
-      ))}
-    </ScrollView>
+    <View style={{ marginBottom: 4 }}>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={[styles.selectTrigger, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+        <Text style={{ color: selected ? theme.text : theme.textSecondary, flex: 1, fontSize: 14 }}>
+          {selected ? selected.label : placeholder || 'Select...'}
+        </Text>
+        {selected?.subLabel ? (
+          <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 8 }}>{selected.subLabel}</Text>
+        ) : null}
+        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{open ? '▲' : '▼'}</Text>
+      </Pressable>
+      {open && (
+        <ScrollView
+          style={[styles.selectScroll, { borderColor: theme.border }]}
+          nestedScrollEnabled>
+          {options.length === 0 ? (
+            <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>{placeholder}</Text>
+          ) : options.map((opt) => (
+            <Pressable
+              key={opt.value}
+              style={[styles.selectOption, value === opt.value && { backgroundColor: theme.primary + '22' }]}
+              onPress={() => handleSelect(opt.value)}>
+              <Text style={{ color: theme.text }}>{opt.label}</Text>
+              {opt.subLabel ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.subLabel}</Text> : null}
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+    </View>
   );
 }
 
@@ -914,7 +937,8 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: { fontSize: 12, fontWeight: "500" },
-  selectScroll: { maxHeight: 160, borderWidth: 1, borderRadius: 8, marginBottom: 4 },
+  selectTrigger: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 0 },
+  selectScroll: { maxHeight: 160, borderWidth: 1, borderRadius: 8, marginBottom: 4, borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
   selectOption: { padding: 12, borderRadius: 6, gap: 2 },
   selectEmpty: { padding: 12, fontSize: 13, textAlign: 'center' },
   pressed: { opacity: 0.7 },
