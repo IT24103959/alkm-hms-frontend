@@ -286,3 +286,30 @@ export const deleteMaintenanceTicket = (_id: string) => http<void>(`/maintenance
 export const getRoomServiceStaff = () => http<RoomServiceStaff[]>("/staff");
 
 export const getRoomsforRoomService = () => http<Room[]>("/rooms");
+
+
+// ─── Event Bookings ───────────────────────────────────────────────────────────
+
+export interface EventBooking {
+  _id: string; customerName?: string; customerEmail?: string; customerMobile?: string;
+  eventType?: string; hallName: string; eventDateTime: string; endDateTime: string;
+  attendees: number; packageName?: string; pricePerGuest?: number;
+  totalPrice?: number; status?: string; notes?: string;
+}
+
+export const getEventBookings = async (): Promise<EventBooking[]> => {
+  const { data } = await http<EventBooking[]>('/event-bookings'); return data;
+};
+export const createEventBooking = async (payload: Omit<EventBooking, '_id'>): Promise<EventBooking> => {
+  const { data } = await http<EventBooking>('/event-bookings', { method: 'POST', body: JSON.stringify(payload) }); return data;
+};
+export const updateEventBooking = async (_id: string, payload: Partial<EventBooking>): Promise<EventBooking> => {
+  const { data } = await http<EventBooking>(`/event-bookings/${_id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
+};
+export const deleteEventBooking = async (_id: string): Promise<void> => {
+  await http<void>(`/event-bookings/${_id}`, { method: 'DELETE' });
+};
+export interface EventAnalytics { events: number; eventRevenue: number; popularTypes?: Record<string, number> | Array<{ type: string; count: number }>; }
+export const getEventAnalytics = async (): Promise<EventAnalytics> => {
+  const { data } = await http<EventAnalytics>('/event-bookings/analytics'); return data;
+};
