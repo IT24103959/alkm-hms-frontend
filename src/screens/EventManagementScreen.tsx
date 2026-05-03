@@ -38,10 +38,10 @@ const HALLS = [
   "MINI HALL",
 ];
 const HALL_IMAGES: Record<string, number> = {
-  "GRAND BALLROOM": require("../../assets/images/Grand Ballroom.jpg"),
-  "GARDEN PAVILION": require("../../assets/images/Garden Pavilion.jpg"),
-  "CONFERENCE ROOM": require("../../assets/images/Conferrence Room.JPG"),
-  "MINI HALL": require("../../assets/images/Mini Hall.jpg"),
+  "GRAND BALLROOM": require("../../assets/images/grand-ballroom.jpg"),
+  "GARDEN PAVILION": require("../../assets/images/garden-pavilion.jpg"),
+  "CONFERENCE ROOM": require("../../assets/images/conference-room.jpg"),
+  "MINI HALL": require("../../assets/images/mini-hall.jpg"),
 };
 const HALL_DETAILS: Record<
   string,
