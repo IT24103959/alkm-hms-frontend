@@ -1,9 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,7 +23,7 @@ import {
   deleteHousekeepingTask,
   getHousekeepingStats,
   getHousekeepingTasks,
-  getRooms,
+  getRoomsforRoomService,
   updateHousekeepingTask,
   updateHousekeepingTaskStatus,
   type HousekeepingStats,
@@ -202,18 +197,26 @@ export default function HousekeepingScreen() {
     const [tasksRes, statsRes, staffRes, roomsRes] = await Promise.allSettled([
       getHousekeepingTasks(),
       getHousekeepingStats(),
-      getStaff({ role: 'HOUSEKEEPER', size: 200 }),
-      getRooms(),
+      getStaff({ role: "HOUSEKEEPER", size: 200 }),
+      getRoomsforRoomService(),
     ]);
     if (tasksRes.status === "fulfilled") {
       const raw = tasksRes.value.data;
-      setTasks(Array.isArray(raw) ? raw : ((raw as { content?: HousekeepingTask[] }).content ?? []));
+      setTasks(
+        Array.isArray(raw)
+          ? raw
+          : ((raw as { content?: HousekeepingTask[] }).content ?? []),
+      );
     }
     if (statsRes.status === "fulfilled") setStats(statsRes.value.data);
     if (staffRes.status === "fulfilled") setStaff(staffRes.value.content ?? []);
     if (roomsRes.status === "fulfilled") {
       const raw = roomsRes.value.data;
-      setRooms(Array.isArray(raw) ? raw : ((raw as { content?: Room[] }).content ?? []));
+      setRooms(
+        Array.isArray(raw)
+          ? raw
+          : ((raw as { content?: Room[] }).content ?? []),
+      );
     }
     setLoading(false);
     setRefreshing(false);
@@ -273,7 +276,9 @@ export default function HousekeepingScreen() {
     }
     setFormError("");
     setSubmitting(true);
-    const deadlineIso = form.deadline ? new Date(form.deadline).toISOString() : undefined;
+    const deadlineIso = form.deadline
+      ? new Date(form.deadline).toISOString()
+      : undefined;
     const basePayload = {
       roomNumber: form.roomNumber.trim(),
       roomCondition: form.roomCondition,
@@ -462,29 +467,57 @@ export default function HousekeepingScreen() {
 
       {/* Stats + Filters panel */}
       <View style={[styles.controlPanel, { borderBottomColor: theme.border }]}>
-
         <View style={[styles.statsBlock, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>OVERVIEW</Text>
+          <Text style={[styles.panelLabel, { color: theme.textSecondary }]}>
+            OVERVIEW
+          </Text>
           <View style={styles.statsGrid}>
             <View style={styles.statsGridRow}>
-                <StatItem label="Total" value={stats?.totalTasks ?? 0} color="#8b5cf6" />
-                <StatItem label="Pending" value={stats?.pendingTasks ?? 0} color="#ef4444" />
-              </View>
-              <View style={styles.statsGridRow}>
-                <StatItem
-                  label="In Progress"
-                  value={stats?.inProgressTasks ?? 0}
-                  color="#3b82f6"
-                />
-                <StatItem label="Completed" value={stats?.completedTasks ?? 0} color="#10b981" />
+              <StatItem
+                label="Total"
+                value={stats?.totalTasks ?? 0}
+                color="#8b5cf6"
+              />
+              <StatItem
+                label="Pending"
+                value={stats?.pendingTasks ?? 0}
+                color="#ef4444"
+              />
             </View>
             <View style={styles.statsGridRow}>
-              <StatItem label="Overdue" value={stats?.overdueTasks ?? 0} color="#f97316" />
-              <View style={[styles.statItem, { backgroundColor: '#64748b18', borderColor: '#64748b44', borderWidth: 1 }]}>
-                <Text style={[styles.statValue, { color: '#64748b' }]}>
-                  {stats?.avgCompletionTimeHours ?? '0.00'}h
+              <StatItem
+                label="In Progress"
+                value={stats?.inProgressTasks ?? 0}
+                color="#3b82f6"
+              />
+              <StatItem
+                label="Completed"
+                value={stats?.completedTasks ?? 0}
+                color="#10b981"
+              />
+            </View>
+            <View style={styles.statsGridRow}>
+              <StatItem
+                label="Overdue"
+                value={stats?.overdueTasks ?? 0}
+                color="#f97316"
+              />
+              <View
+                style={[
+                  styles.statItem,
+                  {
+                    backgroundColor: "#64748b18",
+                    borderColor: "#64748b44",
+                    borderWidth: 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.statValue, { color: "#64748b" }]}>
+                  {stats?.avgCompletionTimeHours ?? "0.00"}h
                 </Text>
-                <Text style={[styles.statLabel, { color: '#64748b' }]}>Avg Completion</Text>
+                <Text style={[styles.statLabel, { color: "#64748b" }]}>
+                  Avg Completion
+                </Text>
               </View>
             </View>
           </View>
@@ -492,57 +525,57 @@ export default function HousekeepingScreen() {
 
         {/* Search + Filters */}
         <View style={styles.filterSection}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            {
-              color: theme.text,
-              borderColor: theme.border,
-              backgroundColor: theme.backgroundElement,
-            },
-          ]}
-          placeholder="Search room..."
-          placeholderTextColor={theme.textSecondary}
-          value={search}
-          onChangeText={setSearch}
-        />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterChips}
-        >
-          {[
-            { label: "All", value: "" },
-            ...ALL_STATUSES.map((s) => ({ label: formatLabel(s), value: s })),
-          ].map((opt) => (
-            <Pressable
-              key={opt.value}
-              onPress={() => setStatusFilter(opt.value)}
-              style={[
-                styles.filterChip,
-                { borderColor: theme.border },
-                statusFilter === opt.value && {
-                  backgroundColor: theme.text,
-                  borderColor: theme.text,
-                },
-              ]}
-            >
-              <Text
+          <TextInput
+            style={[
+              styles.searchInput,
+              {
+                color: theme.text,
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundElement,
+              },
+            ]}
+            placeholder="Search room..."
+            placeholderTextColor={theme.textSecondary}
+            value={search}
+            onChangeText={setSearch}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterChips}
+          >
+            {[
+              { label: "All", value: "" },
+              ...ALL_STATUSES.map((s) => ({ label: formatLabel(s), value: s })),
+            ].map((opt) => (
+              <Pressable
+                key={opt.value}
+                onPress={() => setStatusFilter(opt.value)}
                 style={[
-                  styles.filterChipText,
-                  {
-                    color:
-                      statusFilter === opt.value
-                        ? theme.background
-                        : theme.textSecondary,
+                  styles.filterChip,
+                  { borderColor: theme.border },
+                  statusFilter === opt.value && {
+                    backgroundColor: theme.text,
+                    borderColor: theme.text,
                   },
                 ]}
               >
-                {opt.label || "All"}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    {
+                      color:
+                        statusFilter === opt.value
+                          ? theme.background
+                          : theme.textSecondary,
+                    },
+                  ]}
+                >
+                  {opt.label || "All"}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
       </View>
 
@@ -604,7 +637,10 @@ export default function HousekeepingScreen() {
             >
               <FormField label="Room Number" theme={theme}>
                 <SelectField
-                  options={rooms.map((r) => ({ label: r.roomNumber, value: r.roomNumber }))}
+                  options={rooms.map((r) => ({
+                    label: r.roomNumber,
+                    value: r.roomNumber,
+                  }))}
                   value={form.roomNumber}
                   onChange={(v) => setForm((f) => ({ ...f, roomNumber: v }))}
                   placeholder="No rooms loaded"
@@ -650,7 +686,11 @@ export default function HousekeepingScreen() {
 
               <FormField label="Staff Member (optional)" theme={theme}>
                 <SelectField
-                  options={staff.map((s) => ({ label: s.name, subLabel: s.position, value: s._id }))}
+                  options={staff.map((s) => ({
+                    label: s.name,
+                    subLabel: s.position,
+                    value: s._id,
+                  }))}
                   value={form.staff}
                   onChange={(v) => setForm((f) => ({ ...f, staff: v }))}
                   placeholder="No housekeepers loaded"
@@ -731,18 +771,31 @@ function SelectField({
   return (
     <ScrollView
       style={[styles.selectScroll, { borderColor: theme.border }]}
-      nestedScrollEnabled>
+      nestedScrollEnabled
+    >
       {options.length === 0 ? (
-        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>{placeholder}</Text>
-      ) : options.map((opt) => (
-        <Pressable
-          key={opt.value}
-          style={[styles.selectOption, value === opt.value && { backgroundColor: theme.primary + '22' }]}
-          onPress={() => onChange(opt.value)}>
-          <Text style={{ color: theme.text }}>{opt.label}</Text>
-          {opt.subLabel ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.subLabel}</Text> : null}
-        </Pressable>
-      ))}
+        <Text style={[styles.selectEmpty, { color: theme.textSecondary }]}>
+          {placeholder}
+        </Text>
+      ) : (
+        options.map((opt) => (
+          <Pressable
+            key={opt.value}
+            style={[
+              styles.selectOption,
+              value === opt.value && { backgroundColor: theme.primary + "22" },
+            ]}
+            onPress={() => onChange(opt.value)}
+          >
+            <Text style={{ color: theme.text }}>{opt.label}</Text>
+            {opt.subLabel ? (
+              <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                {opt.subLabel}
+              </Text>
+            ) : null}
+          </Pressable>
+        ))
+      )}
     </ScrollView>
   );
 }
@@ -777,9 +830,20 @@ function StatItem({
 }>) {
   const theme = useTheme();
   return (
-    <View style={[styles.statItem, { backgroundColor: `${color}18`, borderColor: `${color}44`, borderWidth: 1 }]}>
+    <View
+      style={[
+        styles.statItem,
+        {
+          backgroundColor: `${color}18`,
+          borderColor: `${color}44`,
+          borderWidth: 1,
+        },
+      ]}
+    >
       <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
+      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -808,7 +872,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     gap: Spacing.two,
   },
-  panelLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 2 },
+  panelLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
   statsBlock: {
     borderBottomWidth: 1,
     paddingBottom: Spacing.two,
@@ -906,9 +975,14 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: { fontSize: 12, fontWeight: "500" },
-  selectScroll: { maxHeight: 160, borderWidth: 1, borderRadius: 8, marginBottom: 4 },
+  selectScroll: {
+    maxHeight: 160,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
   selectOption: { padding: 12, borderRadius: 6, gap: 2 },
-  selectEmpty: { padding: 12, fontSize: 13, textAlign: 'center' },
+  selectEmpty: { padding: 12, fontSize: 13, textAlign: "center" },
   pressed: { opacity: 0.7 },
   // Modal
   modalSafeArea: { flex: 1 },
