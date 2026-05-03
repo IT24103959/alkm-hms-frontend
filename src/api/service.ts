@@ -34,22 +34,77 @@ export const loginApi = (payload: LoginPayload) => http<LoginResponse>("/auth/lo
 // ─── Profile ─────────────────────────────────────────────────────────────────
 
 export interface UserProfile {
+    _id: string;
     username: string;
     fullName: string;
     role: string;
     email?: string;
+    enabled?: boolean;
+    photoUrl?: string | null;
+    position?: string | null;
+    basicSalary?: number;
+    attendance?: number;
+    overtimeHours?: number;
+    absentDays?: number;
+    overtimeRate?: number;
+    dailyRate?: number;
 }
 
-export const getMyProfile = async (): Promise<UserProfile> => {
-    const { data } = await http<UserProfile>("/users/me");
-    return data;
+export const getUsers = async (): Promise<UserProfile[]> => {
+    const { data } = await http<{ users: UserProfile[] }>("/auth/users");
+    return data.users;
 };
-export const updateMyProfile = async (payload: { fullName: string }): Promise<UserProfile> => {
-    const { data } = await http<UserProfile>("/users/me", { method: "PUT", body: JSON.stringify(payload) });
-    return data;
+
+export const getMyProfile = async (): Promise<UserProfile> => {
+    const { data } = await http<{ user: UserProfile }>("/auth/me");
+    return data.user;
+};
+export const updateMyProfile = async (payload: {
+    fullName?: string;
+    username?: string;
+    photoUrl?: string | null;
+}): Promise<UserProfile> => {
+    const { data } = await http<{ user: UserProfile }>("/auth/update-profile", { method: "PUT", body: JSON.stringify(payload) });
+    return data.user;
 };
 export const changeMyPassword = async (payload: { currentPassword: string; newPassword: string }): Promise<void> => {
-    await http<void>("/users/me/change-password", { method: "POST", body: JSON.stringify(payload) });
+    await http<void>("/auth/change-password", { method: "PUT", body: JSON.stringify(payload) });
+};
+
+export interface UserMutationPayload {
+    username: string;
+    fullName: string;
+    password?: string;
+    role: string;
+    enabled?: boolean;
+    photoUrl?: string | null;
+    position?: string | null;
+    basicSalary?: number;
+    attendance?: number;
+    overtimeHours?: number;
+    absentDays?: number;
+    overtimeRate?: number;
+    dailyRate?: number;
+}
+
+export const createUser = async (payload: UserMutationPayload): Promise<UserProfile> => {
+    const { data } = await http<{ user: UserProfile }>("/auth/users", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    return data.user;
+};
+
+export const updateUser = async (id: string, payload: Partial<UserMutationPayload>): Promise<UserProfile> => {
+    const { data } = await http<{ user: UserProfile }>(`/auth/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+    return data.user;
+};
+
+export const deleteUser = async (id: string): Promise<void> => {
+    await http<void>(`/auth/users/${id}`, { method: "DELETE" });
 };
 
 // ─── Staff ───────────────────────────────────────────────────────────────────
@@ -59,6 +114,8 @@ export interface StaffMember {
     name: string;
     username?: string;
     password?: string;
+    fullName?: string;
+    role?: string;
     position: string;
     basicSalary: number;
     attendance?: number;
@@ -67,6 +124,8 @@ export interface StaffMember {
     overtimeRate?: number;
     dailyRate?: number;
     status?: string;
+    enabled?: boolean;
+    photoUrl?: string | null;
     user?: { _id: string; username: string; fullName: string; role: string } | null;
 }
 
@@ -77,13 +136,57 @@ export interface StaffListResponse {
 }
 
 export const getStaff = async (params?: { name?: string; page?: number; size?: number; role?: string }): Promise<StaffListResponse> => {
-    const q = new URLSearchParams();
-    if (params?.name) q.set("name", params.name);
-    if (params?.page !== undefined) q.set("page", String(params.page));
-    if (params?.size !== undefined) q.set("size", String(params.size));
-    if (params?.role) q.set("role", params.role);
-    const { data } = await http<StaffListResponse>(`/staff?${q.toString()}`);
-    return data;
+    const users = await getUsers();
+    const staffRoles = new Set([
+        "SUPER_ADMIN",
+        "MANAGER",
+        "STAFF_MEMBER",
+        "RESTAURANT_MANAGER",
+        "EVENT_MANAGER",
+        "HOUSEKEEPER",
+        "MAINTENANCE_STAFF",
+    ]);
+    let filtered = users.filter((user) => staffRoles.has(user.role));
+    if (params?.name) {
+        const query = params.name.toLowerCase();
+        filtered = filtered.filter((user) =>
+            user.fullName.toLowerCase().includes(query) ||
+            user.username.toLowerCase().includes(query),
+        );
+    }
+    if (params?.role) {
+        filtered = filtered.filter((user) => user.role === params.role);
+    }
+
+    const content: StaffMember[] = filtered.map((user) => ({
+        _id: user._id,
+        name: user.fullName,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role,
+        position: user.position ?? "",
+        basicSalary: user.basicSalary ?? 0,
+        attendance: user.attendance ?? 0,
+        overtimeHours: user.overtimeHours ?? 0,
+        absentDays: user.absentDays ?? 0,
+        overtimeRate: user.overtimeRate ?? 0,
+        dailyRate: user.dailyRate ?? 0,
+        enabled: user.enabled ?? true,
+        status: user.enabled === false ? "INACTIVE" : "ACTIVE",
+        photoUrl: user.photoUrl ?? null,
+        user: {
+            _id: user._id,
+            username: user.username,
+            fullName: user.fullName,
+            role: user.role,
+        },
+    }));
+
+    return {
+        content,
+        total: content.length,
+        totalPages: 1,
+    };
 };
 
 // ── Housekeeping & Maintenance ────────────────────────────────────────────────────────────
@@ -286,3 +389,216 @@ export const deleteMaintenanceTicket = (_id: string) => http<void>(`/maintenance
 export const getRoomServiceStaff = () => http<RoomServiceStaff[]>("/staff");
 
 export const getRoomsforRoomService = () => http<Room[]>("/rooms");
+
+// ─── Payroll ──────────────────────────────────────────────────────────────────
+
+export interface Payroll {
+    _id: string;
+    user: {
+        _id: string;
+        username: string;
+        fullName: string;
+        role: string;
+    };
+    month: string;
+    year: number;
+    basicSalary: number;
+    overtimeHours: number;
+    overtimeRate: number;
+    overtimePay: number;
+    absentDays: number;
+    dailyRate: number;
+    deductions: number;
+    bonuses: number;
+    netSalary: number;
+    status: "PENDING" | "PAID";
+    paymentDate?: string;
+    remarks?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export const getPayrolls = async (): Promise<Payroll[]> => {
+    const { data } = await http<{ payrolls: Payroll[] }>("/payroll");
+    return data.payrolls;
+};
+
+export const createPayroll = async (payload: {
+    userId: string;
+    month: string;
+    year: number;
+    bonuses?: number;
+    remarks?: string;
+}): Promise<Payroll> => {
+    const { data } = await http<{ payroll: Payroll }>("/payroll", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    return data.payroll;
+};
+
+export const updatePayroll = async (
+    id: string,
+    payload: Partial<Payroll> & {
+        userId?: string;
+        basicSalary?: number;
+        overtimeHours?: number;
+        overtimeRate?: number;
+        absentDays?: number;
+        dailyRate?: number;
+        bonuses?: number;
+        status?: "PENDING" | "PAID";
+    },
+): Promise<Payroll> => {
+    const { data } = await http<{ payroll: Payroll }>(`/payroll/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+    });
+    return data.payroll;
+};
+
+export const deletePayroll = async (id: string): Promise<void> => {
+    await http<void>(`/payroll/${id}`, { method: "DELETE" });
+};
+
+// ─── Restaurant & Dining ──────────────────────────────────────────────────────
+
+export type MenuCategory = "STARTER" | "MAIN_COURSE" | "DESSERT" | "BEVERAGE" | "SPECIAL";
+
+export interface MenuItem {
+    _id: string;
+    name: string;
+    description?: string;
+    category: MenuCategory;
+    price: number;
+    imageUrl?: string | null;
+    available: boolean;
+    preparationTime: number;
+    tags?: string[];
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export const getMenuItems = async (params?: { category?: string; available?: boolean }): Promise<MenuItem[]> => {
+    const q = new URLSearchParams();
+    if (params?.category) q.set("category", params.category);
+    if (params?.available !== undefined) q.set("available", String(params.available));
+    const qs = q.toString();
+    const { data } = await http<{ items: MenuItem[] }>(`/restaurant/menu${qs ? `?${qs}` : ""}`);
+    return data.items;
+};
+
+export const createMenuItem = async (payload: Omit<MenuItem, "_id" | "createdAt" | "updatedAt">): Promise<MenuItem> => {
+    const { data } = await http<{ item: MenuItem }>("/restaurant/menu", {
+        method: "POST", body: JSON.stringify(payload),
+    });
+    return data.item;
+};
+
+export const updateMenuItem = async (id: string, payload: Partial<MenuItem>): Promise<MenuItem> => {
+    const { data } = await http<{ item: MenuItem }>(`/restaurant/menu/${id}`, {
+        method: "PATCH", body: JSON.stringify(payload),
+    });
+    return data.item;
+};
+
+export const deleteMenuItem = async (id: string): Promise<void> => {
+    await http<void>(`/restaurant/menu/${id}`, { method: "DELETE" });
+};
+
+export type ReservationStatus = "PENDING" | "CONFIRMED" | "SEATED" | "COMPLETED" | "CANCELLED";
+
+export interface TableReservation {
+    _id: string;
+    customerName: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    tableNumber: string;
+    guestCount: number;
+    reservationDate: string;
+    reservationTime: string;
+    status: ReservationStatus;
+    specialRequests?: string;
+    orderedItems?: { menuItem?: string; quantity: number; itemName: string; itemPrice: number }[];
+    totalAmount?: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export const getReservations = async (params?: { status?: string; date?: string }): Promise<TableReservation[]> => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.date) q.set("date", params.date);
+    const qs = q.toString();
+    const { data } = await http<{ reservations: TableReservation[] }>(`/restaurant/reservations${qs ? `?${qs}` : ""}`);
+    return data.reservations;
+};
+
+export const createReservation = async (payload: Omit<TableReservation, "_id" | "createdAt" | "updatedAt" | "status" | "totalAmount">): Promise<TableReservation> => {
+    const { data } = await http<{ reservation: TableReservation }>("/restaurant/reservations", {
+        method: "POST", body: JSON.stringify(payload),
+    });
+    return data.reservation;
+};
+
+export const updateReservation = async (id: string, payload: Partial<TableReservation>): Promise<TableReservation> => {
+    const { data } = await http<{ reservation: TableReservation }>(`/restaurant/reservations/${id}`, {
+        method: "PATCH", body: JSON.stringify(payload),
+    });
+    return data.reservation;
+};
+
+export const deleteReservation = async (id: string): Promise<void> => {
+    await http<void>(`/restaurant/reservations/${id}`, { method: "DELETE" });
+};
+
+
+// ─── Event Management ────────────────────────────────────────────────────────
+
+export type EventStatus = "INQUIRY" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+
+export interface EventBooking {
+    _id: string;
+    customerName: string;
+    customerEmail: string;
+    customerMobile: string;
+    eventType: string;
+    hallName: string;
+    packageName: string;
+    eventDateTime: string;
+    endDateTime: string;
+    durationHours?: number;
+    attendees: number;
+    pricePerGuest: number;
+    totalPrice?: number;
+    totalCost?: number;
+    notes?: string;
+    status: EventStatus;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export const getEventBookings = async (): Promise<EventBooking[]> => {
+    const { data } = await http<{ data: EventBooking[] }>("/events");
+    return data.data;
+};
+
+export const createEventBooking = async (payload: Omit<EventBooking, "_id" | "status" | "createdAt" | "updatedAt">): Promise<EventBooking> => {
+    const { data } = await http<{ data: EventBooking }>("/events", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    return data.data;
+};
+
+export const updateEventBooking = async (id: string, payload: Partial<EventBooking>): Promise<EventBooking> => {
+    const { data } = await http<{ data: EventBooking }>(`/events/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+    return data.data;
+};
+
+export const deleteEventBooking = async (id: string): Promise<void> => {
+    await http<void>(`/events/${id}`, { method: "DELETE" });
+};

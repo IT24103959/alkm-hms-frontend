@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import DateTimePickerField from "@/components/DateTimePickerField";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   approveRoomBookingCancellation,
@@ -626,6 +627,8 @@ function ChipRow({
 
 export default function RoomManagementScreen() {
   const theme = useTheme();
+  const { user } = useAuth();
+  const isCustomer = user?.role === "CUSTOMER";
 
   const [tab, setTab] = useState<"rooms" | "bookings">("rooms");
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -760,18 +763,20 @@ export default function RoomManagementScreen() {
             Room Management
           </Text>
         </View>
-        <Pressable
-          style={({ pressed }) => [
-            styles.newBtn,
-            { backgroundColor: theme.primary },
-            pressed && { opacity: 0.7 },
-          ]}
-          onPress={tab === "rooms" ? openAddRoom : () => setBookingModal(true)}
-        >
-          <Text style={styles.newBtnText}>
-            {tab === "rooms" ? "+ Room" : "+ Booking"}
-          </Text>
-        </Pressable>
+        {!isCustomer && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.newBtn,
+              { backgroundColor: theme.primary },
+              pressed && { opacity: 0.7 },
+            ]}
+            onPress={tab === "rooms" ? openAddRoom : () => setBookingModal(true)}
+          >
+            <Text style={styles.newBtnText}>
+              {tab === "rooms" ? "+ Room" : "+ Booking"}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Stats */}
@@ -784,7 +789,7 @@ export default function RoomManagementScreen() {
 
       {/* Tabs */}
       <View style={[styles.tabBar, { borderBottomColor: "#e5e7eb" }]}>
-        {(["rooms", "bookings"] as const).map((t) => (
+        {(isCustomer ? (["rooms"] as const) : (["rooms", "bookings"] as const)).map((t) => (
           <Pressable
             key={t}
             onPress={() => setTab(t)}
@@ -876,24 +881,26 @@ export default function RoomManagementScreen() {
                 Normal: Rs. {item.normalPrice?.toLocaleString()} · Weekend: Rs.{" "}
                 {item.weekendPrice?.toLocaleString()}
               </Text>
-              <View style={styles.cardActions}>
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: "#f59e0b22" }]}
-                  onPress={() => openEditRoom(item)}
-                >
-                  <Text style={[styles.actionText, { color: "#f59e0b" }]}>
-                    Edit
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: "#ef444422" }]}
-                  onPress={() => handleDeleteRoom(item)}
-                >
-                  <Text style={[styles.actionText, { color: "#ef4444" }]}>
-                    Delete
-                  </Text>
-                </Pressable>
-              </View>
+              {!isCustomer && (
+                <View style={styles.cardActions}>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: "#f59e0b22" }]}
+                    onPress={() => openEditRoom(item)}
+                  >
+                    <Text style={[styles.actionText, { color: "#f59e0b" }]}>
+                      Edit
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: "#ef444422" }]}
+                    onPress={() => handleDeleteRoom(item)}
+                  >
+                    <Text style={[styles.actionText, { color: "#ef4444" }]}>
+                      Delete
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
             );
           }}

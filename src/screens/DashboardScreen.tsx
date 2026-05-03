@@ -34,15 +34,21 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 interface ModuleNav { key: string; label: string; description: string; route: string; color: string; roles: string[]; }
 
 const ALL_MODULES: ModuleNav[] = [
-  { key: 'rooms', label: 'Room Management', description: 'Manage rooms & bookings', route: '/rooms', color: '#10b981', roles: ['SUPER_ADMIN', 'MANAGER'] },
-  { key: 'staff', label: 'Staff Management', description: 'Add, edit & manage staff', route: '/staff', color: '#8b5cf6', roles: ['SUPER_ADMIN', 'MANAGER'] },
-  { key: 'payroll', label: 'Payroll', description: 'Staff salary & payroll records', route: '/payroll', color: '#3b82f6', roles: ['SUPER_ADMIN', 'MANAGER', 'STAFF_MEMBER'] },
-  { key: 'housekeeping', label: 'Housekeeping', description: 'Manage cleaning & inspection tasks', route: '/housekeeping', color: '#005f73', roles: ['SUPER_ADMIN', 'MANAGER', 'HOUSEKEEPER'] },
-  { key: 'maintenance', label: 'Maintenance', description: 'Track repairs & technical staff', route: '/maintenance', color: '#0a9396', roles: ['SUPER_ADMIN', 'MANAGER', 'MAINTENANCE_STAFF'] },
-  { key: 'menu', label: 'Menu Management', description: 'Add & edit menu items', route: '/menu', color: '#ec4899', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER'] },
-  { key: 'dining', label: 'Restaurant & Dining', description: 'Table reservations', route: '/dining', color: '#f97316', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER', 'CUSTOMER'] },
-  { key: 'events', label: 'Event Management', description: 'Event bookings & analytics', route: '/events', color: '#f59e0b', roles: ['SUPER_ADMIN', 'MANAGER', 'EVENT_MANAGER'] },
+  // Admin/Staff modules
+  { key: 'rooms',       label: 'Room Management',      description: 'Manage rooms & bookings',              route: '/rooms',      color: '#10b981', roles: ['SUPER_ADMIN', 'MANAGER'] },
+  { key: 'staff',       label: 'Staff Management',     description: 'Add, edit & manage staff',             route: '/staff',      color: '#8b5cf6', roles: ['SUPER_ADMIN', 'MANAGER'] },
+  { key: 'payroll',     label: 'Payroll',              description: 'Staff salary & payroll records',        route: '/payroll',    color: '#3b82f6', roles: ['SUPER_ADMIN', 'MANAGER', 'STAFF_MEMBER'] },
+  { key: 'housekeeping',label: 'Housekeeping',         description: 'Manage cleaning & inspection tasks',   route: '/housekeeping',color: '#005f73', roles: ['SUPER_ADMIN', 'MANAGER', 'HOUSEKEEPER'] },
+  { key: 'maintenance', label: 'Maintenance',          description: 'Track repairs & technical staff',      route: '/maintenance', color: '#0a9396', roles: ['SUPER_ADMIN', 'MANAGER', 'MAINTENANCE_STAFF'] },
+  { key: 'menu',        label: 'Menu Management',      description: 'Add & edit menu items',                route: '/menu',       color: '#ec4899', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER'] },
+  { key: 'dining',      label: 'Dining Admin',         description: 'Manage table reservations',            route: '/dining',     color: '#f97316', roles: ['SUPER_ADMIN', 'MANAGER', 'RESTAURANT_MANAGER'] },
+  { key: 'events',      label: 'Event Management',     description: 'Event bookings & analytics',           route: '/events',     color: '#f59e0b', roles: ['SUPER_ADMIN', 'MANAGER', 'EVENT_MANAGER'] },
+  // Customer-facing modules
+  { key: 'restaurant',  label: '🍽️ Restaurant & Dining', description: 'Browse menu & reserve a table',    route: '/restaurant', color: '#ec4899', roles: ['CUSTOMER'] },
+  { key: 'crooms',      label: '🏨 Room Booking',      description: 'Browse & book hotel rooms',            route: '/rooms',      color: '#10b981', roles: ['CUSTOMER'] },
+  { key: 'cevents',     label: '🎉 Events',            description: 'View hotel events & activities',       route: '/events',     color: '#f59e0b', roles: ['CUSTOMER'] },
 ];
+
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 
@@ -114,7 +120,10 @@ export default function DashboardScreen() {
         <View style={[styles.hotelBrief, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
           <Text style={[styles.hotelTagline, { color: theme.primary }]}>Where Comfort Meets Excellence</Text>
           <Text style={[styles.hotelDesc, { color: theme.textSecondary }]}>
-            Welcome to ALKM Hotel — a premium hospitality destination offering world-class rooms, fine dining, curated events, and seamless service. This management app gives your team full control over operations across every department.
+            {user?.role === 'CUSTOMER' 
+              ? "Experience the epitome of luxury at ALKM Hotel. Relax in our premium rooms, savor exquisite cuisines at our restaurant, and celebrate your special moments with our world-class event services."
+              : "Welcome to ALKM Hotel — a premium hospitality destination offering world-class rooms, fine dining, curated events, and seamless service. This management app gives your team full control over operations across every department."
+            }
           </Text>
         </View>
 
@@ -122,8 +131,10 @@ export default function DashboardScreen() {
           {/* User Header */}
           <View style={styles.userHeader}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={[styles.welcomeLabel, { color: theme.textSecondary }]}>WELCOME BACK</Text>
-              <Text style={[styles.welcomeName, { color: theme.text }]}>{user?.fullName ?? user?.username ?? 'User'}</Text>
+              <Text style={[styles.welcomeLabel, { color: theme.textSecondary }]}>
+                {user?.role === 'CUSTOMER' ? 'HELLO & WELCOME' : 'WELCOME BACK'}
+              </Text>
+              <Text style={[styles.welcomeName, { color: theme.text }]}>{user?.fullName ?? user?.username ?? 'Guest'}</Text>
               <View style={[styles.roleBadge, { backgroundColor: `${roleInfo.color}22` }]}>
                 <Text style={[styles.roleText, { color: roleInfo.color }]}>{roleInfo.label}</Text>
               </View>

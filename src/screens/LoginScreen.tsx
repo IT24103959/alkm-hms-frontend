@@ -124,7 +124,7 @@ export default function LoginScreen() {
                 </Pressable>
               </View>
 
-              <Text style={styles.hint}>Demo password for seeded users: Password@123</Text>
+              <Text style={styles.hint}>Seeded login: `customer / customer123` or other demo users with `Password@123`.</Text>
             </View>
           </KeyboardAvoidingView>
         </ScrollView>

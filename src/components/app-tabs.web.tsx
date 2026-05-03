@@ -31,6 +31,7 @@ const ALL_TABS: TabConfig[] = [
   { name: 'menu',          href: '/menu',          label: 'Menu',         icon: '🍽️' },
   { name: 'dining',        href: '/dining',        label: 'Dining',       icon: '🍴' },
   { name: 'events',        href: '/events',        label: 'Events',       icon: '🎉' },
+  { name: 'restaurant',    href: '/restaurant',    label: 'Fine Dining',  icon: '🍽️' },
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
@@ -41,7 +42,7 @@ const ROLE_TABS: Record<string, string[]> = {
   STAFF_MEMBER:       ['home', 'payroll'],
   RESTAURANT_MANAGER: ['home', 'menu', 'dining'],
   EVENT_MANAGER:      ['home', 'events'],
-  CUSTOMER:           ['home', 'dining'],
+  CUSTOMER:           ['home', 'restaurant', 'rooms', 'events'],
 };
 
 // Context so TabButton can close the drawer when a nav item is tapped

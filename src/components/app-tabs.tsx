@@ -31,15 +31,16 @@ interface TabConfig {
 }
 
 const ALL_TABS: TabConfig[] = [
-  { name: 'index',         href: '/',              label: 'Dashboard',    icon: '🏠' },
+  { name: 'index',         href: '/',              label: 'Home',         icon: '🏰' },
   { name: 'housekeeping',  href: '/housekeeping',  label: 'Housekeeping', icon: '🛏️' },
   { name: 'maintenance',   href: '/maintenance',   label: 'Maintenance',  icon: '🔧' },
-  { name: 'rooms',         href: '/rooms',         label: 'Rooms',        icon: '🏨' },
+  { name: 'rooms',         href: '/rooms',         label: 'Luxury Stay',  icon: '🏨' },
   { name: 'staff',         href: '/staff',         label: 'Staff',        icon: '👥' },
   { name: 'payroll',       href: '/payroll',       label: 'Payroll',      icon: '💰' },
   { name: 'menu',          href: '/menu',          label: 'Menu',         icon: '🍽️' },
   { name: 'dining',        href: '/dining',        label: 'Dining',       icon: '🍴' },
-  { name: 'events',        href: '/events',        label: 'Events',       icon: '🎉' },
+  { name: 'events',        href: '/events',        label: 'Grand Events', icon: '✨' },
+  { name: 'restaurant',    href: '/restaurant',    label: 'Fine Dining',  icon: '🍽️' },
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
@@ -47,10 +48,10 @@ const ROLE_TABS: Record<string, string[]> = {
   MANAGER:            ['index', 'rooms', 'staff', 'payroll', 'housekeeping', 'maintenance', 'menu', 'dining', 'events'],
   HOUSEKEEPER:        ['index', 'housekeeping'],
   MAINTENANCE_STAFF:  ['index', 'maintenance'],
-  STAFF_MEMBER:       ['index', 'payroll'],
+  STAFF_MEMBER:       ['index', 'staff', 'payroll'],
   RESTAURANT_MANAGER: ['index', 'menu', 'dining'],
   EVENT_MANAGER:      ['index', 'events'],
-  CUSTOMER:           ['index', 'dining'],
+  CUSTOMER:           ['index', 'restaurant', 'rooms', 'events'],
 };
 
 const DrawerContext = createContext<() => void>(() => {});

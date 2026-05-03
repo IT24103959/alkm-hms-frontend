@@ -8,7 +8,8 @@
     "scheme": "alkmhmsmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/alkm-logo.png"
+      "icon": "./assets/alkm-logo.png",
+      "bundleIdentifier": "com.it24103959.alkmhmsmobile"
     },
     "android": {
       "adaptiveIcon": {

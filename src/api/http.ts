@@ -1,4 +1,4 @@
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:5000/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:5001/api/v1';
 
 let authToken: string | null = null;
 
@@ -27,6 +27,8 @@ export async function http<T>(path: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${authToken}`;
   }
   const response = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  
+  console.log(`HTTP ${options.method || 'GET'} ${BASE_URL}${path} -> ${response.status}`);
 
   if (!response.ok) {
     let data: { message?: string } = {};
@@ -35,11 +37,21 @@ export async function http<T>(path: string, options: RequestInit = {}): Promise<
     } catch {
       // non-JSON error body
     }
+    console.error("API Error Response:", response.status, data);
     const error: ApiError = { response: { status: response.status, data } };
     throw error;
   }
 
-  const json = await response.json();
+  if (response.status === 204) {
+    return { data: undefined as T };
+  }
+
+  const raw = await response.text();
+  if (!raw) {
+    return { data: undefined as T };
+  }
+
+  const json = JSON.parse(raw);
   // Spring Boot wraps responses: { status: "success", message: "...", data: <payload> }
   // Detect the envelope and unwrap so callers always get the inner payload.
   const isEnvelope = (
