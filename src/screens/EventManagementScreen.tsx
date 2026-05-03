@@ -31,6 +31,13 @@ import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
 const HALLS = ['GRAND BALLROOM', 'GARDEN PAVILION', 'CONFERENCE ROOM', 'MINI HALL'];
+const HALL_HOURLY_RATES: Record<string, number> = {
+  'GRAND BALLROOM': 30000,
+  'GARDEN PAVILION': 20000,
+  'CONFERENCE ROOM': 10000,
+  'MINI HALL': 12000,
+};
+const PREMIUM_FEE = 10000;
 const PACKAGE_OPTIONS = [
   { value: 'Standard', label: 'Standard' },
   { value: 'Premium', label: 'Premium (+Rs. 10,000)' },
@@ -48,7 +55,7 @@ const BLANK: Omit<EventBooking, '_id'> = {
   customerName: '', customerEmail: '', customerMobile: '',
   eventType: '', hallName: 'GRAND BALLROOM',
   eventDateTime: '', endDateTime: '', attendees: 50,
-  packageName: 'Standard', pricePerGuest: 0, status: 'INQUIRY', notes: '',
+  packageName: 'Standard', pricePerHour: HALL_HOURLY_RATES['GRAND BALLROOM'], status: 'INQUIRY', notes: '',
 };
 
 const errMsg = (err: unknown) => {
@@ -90,13 +97,25 @@ function EventFormModal({
         endDateTime: editing.endDateTime?.slice(0, 16) ?? '',
         attendees: editing.attendees,
         packageName: editing.packageName ?? 'Standard',
-        pricePerGuest: editing.pricePerGuest ?? 0,
+        pricePerHour: editing.pricePerHour ?? editing.pricePerGuest ?? HALL_HOURLY_RATES[editing.hallName] ?? HALL_HOURLY_RATES['GRAND BALLROOM'],
         status: editing.status ?? 'PENDING',
         notes: editing.notes ?? '',
       });
     }
     setError('');
   }, [editing, visible]);
+
+  const getHallPackageHourlyRate = (hallName: string, packageName: string) => {
+    const baseRate = HALL_HOURLY_RATES[hallName] ?? 0;
+    return packageName?.toUpperCase() === 'PREMIUM' ? baseRate + PREMIUM_FEE : baseRate;
+  };
+
+  useEffect(() => {
+    setForm((f) => ({
+      ...f,
+      pricePerHour: getHallPackageHourlyRate(f.hallName, f.packageName ?? 'Standard'),
+    }));
+  }, [form.hallName, form.packageName]);
 
   const set = (key: keyof typeof form) => (v: string) =>
     setForm((f) => ({ ...f, [key]: v }));
@@ -114,7 +133,7 @@ function EventFormModal({
     setError('');
     setSubmitting(true);
     try {
-      const payload = { ...form, attendees: Number(form.attendees), pricePerGuest: Number(form.pricePerGuest) };
+      const payload = { ...form, attendees: Number(form.attendees), pricePerHour: Number(form.pricePerHour) };
       if (editing === null) {
         await createEventBooking(payload);
       } else {
@@ -175,8 +194,14 @@ function EventFormModal({
                 <TextInput style={inputStyle} value={String(form.attendees)} onChangeText={(v) => setForm((f) => ({ ...f, attendees: Number(v) || 0 }))} keyboardType="numeric" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Price/Guest (Rs.)</Text>
-                <TextInput style={inputStyle} value={String(form.pricePerGuest)} onChangeText={(v) => setForm((f) => ({ ...f, pricePerGuest: Number(v) || 0 }))} keyboardType="numeric" />
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Price per hour (Rs.)</Text>
+                <TextInput
+                  style={inputStyle}
+                  value={String(form.pricePerHour ?? '')}
+                  editable={false}
+                  placeholder="Auto-selected"
+                  placeholderTextColor={theme.textSecondary}
+                />
               </View>
             </View>
 
