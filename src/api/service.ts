@@ -85,6 +85,18 @@ export const getStaff = async (params?: { name?: string; page?: number; size?: n
     const { data } = await http<StaffListResponse>(`/staff?${q.toString()}`);
     return data;
 };
+export const getStaffById = async (id: string): Promise<StaffMember> => {
+  const { data } = await http<StaffMember>(`/staff/${id}`); return data;
+};
+export const createStaff = async (payload: Omit<StaffMember, '_id' | 'status' | 'user'>): Promise<StaffMember> => {
+  const { data } = await http<StaffMember>('/staff', { method: 'POST', body: JSON.stringify(payload) }); return data;
+};
+export const updateStaff = async (id: string, payload: Partial<StaffMember>): Promise<StaffMember> => {
+  const { data } = await http<StaffMember>(`/staff/${id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
+};
+export const softDeleteStaff = async (id: string): Promise<void> => {
+  await http<void>(`/staff/${id}`, { method: 'DELETE' });
+};
 
 // ── Housekeeping & Maintenance ────────────────────────────────────────────────────────────
 
@@ -312,4 +324,81 @@ export const deleteEventBooking = async (_id: string): Promise<void> => {
 export interface EventAnalytics { events: number; eventRevenue: number; popularTypes?: Record<string, number> | Array<{ type: string; count: number }>; }
 export const getEventAnalytics = async (): Promise<EventAnalytics> => {
   const { data } = await http<EventAnalytics>('/event-bookings/analytics'); return data;
+};
+
+
+// ─── Table Reservations ───────────────────────────────────────────────────────
+
+export interface TableReservation {
+  _id: string; name?: string; email?: string; phone?: string;
+  reservationDate: string; guestCount: number; mealType: string;
+  seatingPreference?: string; specialRequests?: string;
+  status?: string; assignedTable?: string;
+}
+
+export const getReservations = async (): Promise<TableReservation[]> => {
+  const { data } = await http<TableReservation[]>('/reservations'); return data;
+};
+export const getMyReservations = async (): Promise<TableReservation[]> => {
+  const { data } = await http<TableReservation[]>('/reservations/my'); return data;
+};
+export const createReservation = async (payload: Omit<TableReservation, '_id'>): Promise<TableReservation> => {
+  const { data } = await http<TableReservation>('/reservations', { method: 'POST', body: JSON.stringify(payload) }); return data;
+};
+export const updateReservationStatus = async (_id: string, status: string): Promise<void> => {
+  await http<void>(`/reservations/${_id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+};
+export const assignReservationTable = async (_id: string, assignedTable: string): Promise<void> => {
+  await http<void>(`/reservations/${_id}/assign-table`, { method: 'PATCH', body: JSON.stringify({ assignedTable }) });
+};
+export const cancelReservation = async (_id: string): Promise<void> => {
+  await http<void>(`/reservations/${_id}/cancel`, { method: 'POST' });
+};
+
+// ─── Menu Items ───────────────────────────────────────────────────────────────
+
+export interface MenuItem {
+  _id: string; name: string; cuisine: string; price: number;
+  description?: string; badge?: string; mealService?: string;
+  available: boolean; imageUrl?: string;
+}
+
+export const getMenuItems = async (params?: { search?: string; cuisine?: string }): Promise<MenuItem[]> => {
+  const q = new URLSearchParams();
+  if (params?.search) q.set('search', params.search);
+  if (params?.cuisine) q.set('cuisine', params.cuisine);
+  const qs = q.toString();
+  const path = qs.length > 0 ? `/menu-items?${qs}` : '/menu-items';
+  const { data } = await http<MenuItem[]>(path); return data;
+};
+export const createMenuItem = async (payload: Omit<MenuItem, '_id'>): Promise<MenuItem> => {
+  const { data } = await http<MenuItem>('/menu-items', { method: 'POST', body: JSON.stringify(payload) }); return data;
+};
+export const updateMenuItem = async (_id: string, payload: Partial<MenuItem>): Promise<MenuItem> => {
+  const { data } = await http<MenuItem>(`/menu-items/${_id}`, { method: 'PUT', body: JSON.stringify(payload) }); return data;
+};
+export const deleteMenuItem = async (_id: string): Promise<void> => {
+  await http<void>(`/menu-items/${_id}`, { method: 'DELETE' });
+};
+export const toggleMenuItemAvailability = async (_id: string, available: boolean): Promise<void> => {
+  await http<void>(`/menu-items/${_id}/availability`, { method: 'PATCH', body: JSON.stringify({ available }) });
+};
+
+// ─── Payroll ─────────────────────────────────────────────────────────────────
+
+export interface PayrollRecord {
+  _id: string;
+  staff?: { _id: string; username: string; fullName: string; position: string; basicSalary: number };
+  month: number; year: number;
+  basicSalary?: number; overtimePay?: number; deductions?: number; netSalary?: number;
+}
+
+export const getAllPayroll = async (): Promise<PayrollRecord[]> => {
+  const { data } = await http<PayrollRecord[]>('/payroll'); return data;
+};
+export const getMyPayroll = async (): Promise<PayrollRecord[]> => {
+  const { data } = await http<PayrollRecord[]>('/payroll/my'); return data;
+};
+export const calculatePayroll = async (payload: { staffId: string; month: number; year: number }): Promise<PayrollRecord> => {
+  const { data } = await http<PayrollRecord>('/payroll/calculate', { method: 'POST', body: JSON.stringify(payload) }); return data;
 };
