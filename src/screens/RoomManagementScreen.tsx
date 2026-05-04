@@ -117,11 +117,12 @@ function RoomFormModal({
     setUploading(true);
     try {
       const asset = result.assets[0];
-      // Fetch the local file as a blob then upload to Cloudinary
-      const localRes = await fetch(asset.uri);
-      const blob = await localRes.blob();
       const formData = new FormData();
-      formData.append("file", blob, "menu-item.jpg");
+      formData.append("file", {
+        uri: asset.uri,
+        type: asset.mimeType ?? "image/jpeg",
+        name: asset.fileName ?? "room-image.jpg",
+      } as unknown as Blob);
       formData.append("upload_preset", UPLOAD_PRESET);
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
@@ -521,14 +522,25 @@ function BookingFormModal({
             Room Number
           </Text>
           {availableRooms.length === 0 ? (
-            <View style={[styles.input, { borderColor: theme.border, backgroundColor: theme.backgroundElement, justifyContent: 'center' }]}>
-              <Text style={{ color: theme.textSecondary, fontSize: 14 }}>No available rooms</Text>
+            <View
+              style={[
+                styles.input,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundElement,
+                  justifyContent: "center",
+                },
+              ]}
+            >
+              <Text style={{ color: theme.textSecondary, fontSize: 14 }}>
+                No available rooms
+              </Text>
             </View>
           ) : (
             <RoomDropdown
               rooms={availableRooms}
               value={form.roomNumber}
-              onSelect={(rn) => set('roomNumber')(rn)}
+              onSelect={(rn) => set("roomNumber")(rn)}
               theme={theme}
             />
           )}
@@ -595,15 +607,35 @@ function RoomDropdown({
     <View style={{ marginBottom: 8 }}>
       <Pressable
         onPress={() => setOpen((v) => !v)}
-        style={[styles.input, { flexDirection: 'row', alignItems: 'center', borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+        style={[
+          styles.input,
+          {
+            flexDirection: "row",
+            alignItems: "center",
+            borderColor: theme.border,
+            backgroundColor: theme.backgroundElement,
+          },
+        ]}
       >
-        <Text style={{ flex: 1, color: selected ? theme.text : theme.textSecondary, fontSize: 14 }}>
-          {selected ? `Room ${selected.roomNumber} — ${selected.roomType}` : 'Select a room...'}
+        <Text
+          style={{
+            flex: 1,
+            color: selected ? theme.text : theme.textSecondary,
+            fontSize: 14,
+          }}
+        >
+          {selected
+            ? `Room ${selected.roomNumber} — ${selected.roomType}`
+            : "Select a room..."}
         </Text>
         {selected ? (
-          <Text style={{ color: '#10b981', fontSize: 12, marginRight: 8 }}>{selected.remainingRooms ?? 0} left</Text>
+          <Text style={{ color: "#10b981", fontSize: 12, marginRight: 8 }}>
+            {selected.remainingRooms ?? 0} left
+          </Text>
         ) : null}
-        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{open ? '▲' : '▼'}</Text>
+        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+          {open ? "▲" : "▼"}
+        </Text>
       </Pressable>
       {open && (
         <ScrollView
@@ -613,13 +645,29 @@ function RoomDropdown({
           {rooms.map((r) => (
             <Pressable
               key={r._id}
-              onPress={() => { onSelect(r.roomNumber); setOpen(false); }}
-              style={[styles.roomDropdownOption, value === r.roomNumber && { backgroundColor: theme.primary + '22' }]}
+              onPress={() => {
+                onSelect(r.roomNumber);
+                setOpen(false);
+              }}
+              style={[
+                styles.roomDropdownOption,
+                value === r.roomNumber && {
+                  backgroundColor: theme.primary + "22",
+                },
+              ]}
             >
-              <Text style={{ color: theme.text, fontWeight: '600', fontSize: 14 }}>Room {r.roomNumber}</Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
-                <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{r.roomType}</Text>
-                <Text style={{ color: '#10b981', fontSize: 12 }}>{r.remainingRooms ?? 0} available</Text>
+              <Text
+                style={{ color: theme.text, fontWeight: "600", fontSize: 14 }}
+              >
+                Room {r.roomNumber}
+              </Text>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 2 }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                  {r.roomType}
+                </Text>
+                <Text style={{ color: "#10b981", fontSize: 12 }}>
+                  {r.remainingRooms ?? 0} available
+                </Text>
               </View>
             </Pressable>
           ))}
@@ -682,7 +730,7 @@ export default function RoomManagementScreen() {
   const [roomModal, setRoomModal] = useState(false);
   const [bookingModal, setBookingModal] = useState(false);
   const [editing, setEditing] = useState<Room | null>(null);
-  const [roomStatusFilter, setRoomStatusFilter] = useState<string>('ALL');
+  const [roomStatusFilter, setRoomStatusFilter] = useState<string>("ALL");
 
   const load = useCallback(async () => {
     const [r, b] = await Promise.allSettled([getRooms(), getRoomBookings()]);
@@ -703,27 +751,36 @@ export default function RoomManagementScreen() {
 
   // Room numbers that have an active booking — treat those rooms as OCCUPIED
   const bookedRoomNumbers = useMemo(
-    () => new Set(
-      bookings
-        .filter((b) => ['BOOKED', 'CHECKED_IN'].includes(b.bookingStatus ?? ''))
-        .map((b) => b.roomNumber),
-    ),
+    () =>
+      new Set(
+        bookings
+          .filter((b) =>
+            ["BOOKED", "CHECKED_IN"].includes(b.bookingStatus ?? ""),
+          )
+          .map((b) => b.roomNumber),
+      ),
     [bookings],
   );
 
   // Derived status: bookings override roomStatus for OCCUPIED
   const effectiveStatus = useCallback(
-    (r: Room) => bookedRoomNumbers.has(r.roomNumber) ? 'OCCUPIED' : (r.roomStatus ?? 'AVAILABLE'),
+    (r: Room) =>
+      bookedRoomNumbers.has(r.roomNumber)
+        ? "OCCUPIED"
+        : (r.roomStatus ?? "AVAILABLE"),
     [bookedRoomNumbers],
   );
 
   const availableRooms = useMemo(
-    () => rooms.filter((r) => effectiveStatus(r) === 'AVAILABLE'),
+    () => rooms.filter((r) => effectiveStatus(r) === "AVAILABLE"),
     [rooms, effectiveStatus],
   );
 
   const filteredRooms = useMemo(
-    () => roomStatusFilter === 'ALL' ? rooms : rooms.filter((r) => effectiveStatus(r) === roomStatusFilter),
+    () =>
+      roomStatusFilter === "ALL"
+        ? rooms
+        : rooms.filter((r) => effectiveStatus(r) === roomStatusFilter),
     [rooms, roomStatusFilter, effectiveStatus],
   );
 
@@ -731,7 +788,7 @@ export default function RoomManagementScreen() {
     () => ({
       total: rooms.length,
       available: availableRooms.length,
-      occupied: rooms.filter((r) => effectiveStatus(r) === 'OCCUPIED').length,
+      occupied: rooms.filter((r) => effectiveStatus(r) === "OCCUPIED").length,
       activeBookings: bookings.filter((b) =>
         ["BOOKED", "CHECKED_IN"].includes(b.bookingStatus ?? ""),
       ).length,
@@ -826,7 +883,11 @@ export default function RoomManagementScreen() {
         <StatChip label="Total" value={summary.total} color="#3b82f6" />
         <StatChip label="Available" value={summary.available} color="#10b981" />
         <StatChip label="Occupied" value={summary.occupied} color="#ef4444" />
-        <StatChip label="Bookings" value={summary.activeBookings} color="#f59e0b" />
+        <StatChip
+          label="Bookings"
+          value={summary.activeBookings}
+          color="#f59e0b"
+        />
       </View>
 
       {/* Tabs */}
@@ -858,15 +919,38 @@ export default function RoomManagementScreen() {
       ) : null}
 
       {!loading && tab === "rooms" && (
-        <View style={[styles.filterBarWrapper, { borderBottomColor: '#e5e7eb' }]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterBarContent}>
-            {(['ALL', ...ROOM_STATUSES]).map((s) => (
+        <View
+          style={[styles.filterBarWrapper, { borderBottomColor: "#e5e7eb" }]}
+        >
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterBarContent}
+          >
+            {["ALL", ...ROOM_STATUSES].map((s) => (
               <Pressable
                 key={s}
                 onPress={() => setRoomStatusFilter(s)}
-                style={[styles.filterChip, { borderColor: roomStatusFilter === s ? theme.primary : theme.border }, roomStatusFilter === s && { backgroundColor: theme.primary }]}
+                style={[
+                  styles.filterChip,
+                  {
+                    borderColor:
+                      roomStatusFilter === s ? theme.primary : theme.border,
+                  },
+                  roomStatusFilter === s && { backgroundColor: theme.primary },
+                ]}
               >
-                <Text style={[styles.filterChipText, { color: roomStatusFilter === s ? '#fff' : theme.textSecondary }]}>{s}</Text>
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    {
+                      color:
+                        roomStatusFilter === s ? "#fff" : theme.textSecondary,
+                    },
+                  ]}
+                >
+                  {s}
+                </Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -884,66 +968,82 @@ export default function RoomManagementScreen() {
           renderItem={({ item }) => {
             const es = effectiveStatus(item);
             return (
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: "#f9fafb", borderColor: "#e5e7eb" },
-              ]}
-            >
-              {item.photoUrl ? (
-                <Image
-                  source={{ uri: item.photoUrl }}
-                  style={styles.cardImage}
-                  resizeMode="cover"
-                />
-              ) : null}
-              <View style={styles.cardRow}>
-                <Text style={[styles.cardPrimary, { color: theme.text }]}>
-                  Room {item.roomNumber}
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: "#f9fafb", borderColor: "#e5e7eb" },
+                ]}
+              >
+                {item.photoUrl ? (
+                  <Image
+                    source={{ uri: item.photoUrl }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                  />
+                ) : null}
+                <View style={styles.cardRow}>
+                  <Text style={[styles.cardPrimary, { color: theme.text }]}>
+                    Room {item.roomNumber}
+                  </Text>
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: roomStatusColor(es) + "22" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.badgeText, { color: roomStatusColor(es) }]}
+                    >
+                      {es}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.cardRow}>
+                  <Text
+                    style={[styles.cardMeta, { color: theme.textSecondary }]}
+                  >
+                    {item.roomType} · Cap: {item.capacity}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.cardMeta,
+                      { color: "#10b981", fontWeight: "600" },
+                    ]}
+                  >
+                    Rooms: {item.totalRooms ?? 0}
+                  </Text>
+                </View>
+                {item.roomDescription ? (
+                  <Text
+                    style={[styles.cardDesc, { color: theme.textSecondary }]}
+                    numberOfLines={2}
+                  >
+                    {item.roomDescription}
+                  </Text>
+                ) : null}
+                <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
+                  Normal: Rs. {item.normalPrice?.toLocaleString()} · Weekend:
+                  Rs. {item.weekendPrice?.toLocaleString()}
                 </Text>
-                <View style={[styles.badge, { backgroundColor: roomStatusColor(es) + '22' }]}>
-                  <Text style={[styles.badgeText, { color: roomStatusColor(es) }]}>{es}</Text>
+                <View style={styles.cardActions}>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: "#f59e0b22" }]}
+                    onPress={() => openEditRoom(item)}
+                  >
+                    <Text style={[styles.actionText, { color: "#f59e0b" }]}>
+                      Edit
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.actionBtn, { backgroundColor: "#ef444422" }]}
+                    onPress={() => handleDeleteRoom(item)}
+                  >
+                    <Text style={[styles.actionText, { color: "#ef4444" }]}>
+                      Delete
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
-              <View style={styles.cardRow}>
-                <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                  {item.roomType} · Cap: {item.capacity}
-                </Text>
-                <Text style={[styles.cardMeta, { color: '#10b981', fontWeight: '600' }]}>
-                  Rooms: {item.totalRooms ?? 0}
-                </Text>
-              </View>
-              {item.roomDescription ? (
-                <Text
-                  style={[styles.cardDesc, { color: theme.textSecondary }]}
-                  numberOfLines={2}
-                >
-                  {item.roomDescription}
-                </Text>
-              ) : null}
-              <Text style={[styles.cardMeta, { color: theme.textSecondary }]}>
-                Normal: Rs. {item.normalPrice?.toLocaleString()} · Weekend: Rs.{" "}
-                {item.weekendPrice?.toLocaleString()}
-              </Text>
-              <View style={styles.cardActions}>
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: "#f59e0b22" }]}
-                  onPress={() => openEditRoom(item)}
-                >
-                  <Text style={[styles.actionText, { color: "#f59e0b" }]}>
-                    Edit
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.actionBtn, { backgroundColor: "#ef444422" }]}
-                  onPress={() => handleDeleteRoom(item)}
-                >
-                  <Text style={[styles.actionText, { color: "#ef4444" }]}>
-                    Delete
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
             );
           }}
           ListEmptyComponent={
@@ -1081,10 +1181,27 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: "700" },
   statLabel: { fontSize: 11, color: "#9ca3af" },
   filterBarWrapper: { height: 46, borderBottomWidth: 1, flexShrink: 0 },
-  filterBarContent: { paddingHorizontal: Spacing.four, alignItems: 'center', gap: 6 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginRight: 6 },
-  filterChipText: { fontSize: 12, fontWeight: '500' },
-  roomDropdownList: { maxHeight: 180, borderWidth: 1, borderRadius: 8, borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+  filterBarContent: {
+    paddingHorizontal: Spacing.four,
+    alignItems: "center",
+    gap: 6,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 6,
+  },
+  filterChipText: { fontSize: 12, fontWeight: "500" },
+  roomDropdownList: {
+    maxHeight: 180,
+    borderWidth: 1,
+    borderRadius: 8,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
   roomDropdownOption: { padding: 12, gap: 2 },
   tabBar: { flexDirection: "row", borderBottomWidth: 1 },
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: "center" },
@@ -1167,7 +1284,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   imagePreview: { width: "100%", height: 160, borderRadius: 8 },
-  cardImage: { width: '100%', height: 140, borderRadius: 8, marginBottom: 6 },
+  cardImage: { width: "100%", height: 140, borderRadius: 8, marginBottom: 6 },
   errorText: {
     color: "#ef4444",
     fontSize: 13,

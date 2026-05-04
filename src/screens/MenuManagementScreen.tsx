@@ -95,11 +95,12 @@ function ItemFormModal({
     setUploading(true);
     try {
       const asset = result.assets[0];
-      // Fetch the local file as a blob then upload to Cloudinary
-      const localRes = await fetch(asset.uri);
-      const blob = await localRes.blob();
       const formData = new FormData();
-      formData.append("file", blob, "menu-item.jpg");
+      formData.append("file", {
+        uri: asset.uri,
+        type: asset.mimeType ?? "image/jpeg",
+        name: asset.fileName ?? "menu-item.jpg",
+      } as unknown as Blob);
       formData.append("upload_preset", UPLOAD_PRESET);
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
